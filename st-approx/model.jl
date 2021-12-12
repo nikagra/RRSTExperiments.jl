@@ -1,6 +1,8 @@
 
 using JuMP
-using GLPKMathProgInterface
+using GLPK
+using Graphs
+using Random
 
 function solve_model(n::Int,
                     E::Array{Tuple{Int, Int}},
@@ -13,78 +15,79 @@ function solve_model(n::Int,
   A = E ∪ [(j, i) for (i, j) in E]
 
   # Model
-  model = Model(solver=GLPKSolverLP())
+  model = Model(GLPK.Optimizer)
+  set_optimizer_attribute(model, "msg_lev", 0)
 
   # Variables
-  @defVar(model, fx[A, setdiff(V, [1])] ≥ 0)
-  @defVar(model, wx[A] ≥ 0)
-  @defVar(model, x[E] ≥ 0)
+  @variable(model, fx[A, setdiff(V, [1])] ≥ 0)
+  @variable(model, wx[A] ≥ 0)
+  @variable(model, x[E] ≥ 0)
 
-  @defVar(model, fy[A, setdiff(V, [1])] ≥ 0)
-  @defVar(model, wy[A] ≥ 0)
-  @defVar(model, y[E] ≥ 0)
+  @variable(model, fy[A, setdiff(V, [1])] ≥ 0)
+  @variable(model, wy[A] ≥ 0)
+  @variable(model, y[E] ≥ 0)
 
-  @defVar(model, z[E] ≥ 0)
+  @variable(model, z[E] ≥ 0)
 
   # Objective
-  @setObjective(model, Min, sum{C[(i,j)]*x[(i,j)] + c[(i,j)]*y[(i,j)], (i,j) = E})
+  @objective(model, Min, sum(C[(i,j)]*x[(i,j)] + c[(i,j)]*y[(i,j)] for (i,j) in E))
 
   #Constraints
   for k in V_k # sources
-    @addConstraint(model, sum{fx[(j,i),k], (j,i) = filter(e -> e[2] == 1, A)} -
-      sum{fx[(i,j),k], (i,j) = filter(e -> e[1] == 1, A)} == -1)
+    @constraint(model, sum(fx[(j,i),k] for (j,i) in filter(e -> e[2] == 1, A)) -
+      sum(fx[(i,j),k] for (i,j) in filter(e -> e[1] == 1, A)) == -1)
 
-    @addConstraint(model, sum{fy[(j,i),k], (j,i) = filter(e -> e[2] == 1, A)} -
-      sum{fy[(i,j),k], (i,j) = filter(e -> e[1] == 1, A)} == -1)
+    @constraint(model, sum(fy[(j,i),k] for (j,i) in filter(e -> e[2] == 1, A)) -
+      sum(fy[(i,j),k] for (i,j) in filter(e -> e[1] == 1, A)) == -1)
   end
 
   for k in V_k, i in V_k # balances
     if i ≠ k
-      @addConstraint(model, sum{fx[(j,i),k], j = filter(j -> (j,i) ∈ A, V)} -
-        sum{fx[(i,j),k], j = filter(j -> (i,j) ∈ A, V)} == 0)
+      @constraint(model, sum(fx[(j,i),k] for j in filter(j -> (j,i) ∈ A, V)) -
+        sum(fx[(i,j),k] for j in filter(j -> (i,j) ∈ A, V)) == 0)
 
-      @addConstraint(model, sum{fy[(j,i),k], j = filter(j -> (j,i) ∈ A, V)} -
-        sum{fy[(i,j),k], j = filter(j -> (i,j) ∈ A, V)} == 0)
+      @constraint(model, sum(fy[(j,i),k] for j in filter(j -> (j,i) ∈ A, V)) -
+        sum(fy[(i,j),k] for j in filter(j -> (i,j) ∈ A, V)) == 0)
     end
   end
 
   for k in V_k # sinks
-    @addConstraint(model, sum{fx[(j,i),k], (j, i) = filter(e -> e[2] == k, A)} -
-      sum{fx[(i,j),k], (i, j) = filter(e -> e[1] == k, A)} == 1)
+    @constraint(model, sum(fx[(j,i),k] for (j,i) in filter(e -> e[2] == k, A)) -
+      sum(fx[(i,j),k] for (i,j) in filter(e -> e[1] == k, A)) == 1)
 
-    @addConstraint(model, sum{fy[(j,i),k], (j, i) = filter(e -> e[2] == k, A)} -
-      sum{fy[(i,j),k], (i, j) = filter(e -> e[1] == k, A)} == 1)
+    @constraint(model, sum(fy[(j,i),k] for (j,i) in filter(e -> e[2] == k, A)) -
+      sum(fy[(i,j),k] for (i,j) in filter(e -> e[1] == k, A)) == 1)
   end
 
   for k in V_k, (i,j) in A # capacity
-    @addConstraint(model, fx[(i,j),k] ≤ wx[(i,j)])
-    @addConstraint(model, fy[(i,j),k] ≤ wy[(i,j)])
+    @constraint(model, fx[(i,j),k] ≤ wx[(i,j)])
+    @constraint(model, fy[(i,j),k] ≤ wy[(i,j)])
   end
 
   # tree 1
-  @addConstraint(model, sum{wx[(i,j)], (i,j) = A} == n - 1)
-  @addConstraint(model, sum{wy[(i,j)], (i,j) = A} == n - 1)
+  @constraint(model, sum(wx[(i,j)] for (i,j) in A) == n - 1)
+  @constraint(model, sum(wy[(i,j)] for (i,j) in A) == n - 1)
 
   for (i,j) in E # tree 2
-    @addConstraint(model, x[(i,j)] == wx[(i,j)] + wx[(j,i)])
-    @addConstraint(model, y[(i,j)] == wy[(i,j)] + wy[(j,i)])
+    @constraint(model, x[(i,j)] == wx[(i,j)] + wx[(j,i)])
+    @constraint(model, y[(i,j)] == wy[(i,j)] + wy[(j,i)])
   end
 
   for (i,j) in E
-    @addConstraint(model, x[(i,j)] - z[(i,j)] ≥ 0)
-    @addConstraint(model, y[(i,j)] - z[(i,j)] ≥ 0)
+    @constraint(model, x[(i,j)] - z[(i,j)] ≥ 0)
+    @constraint(model, y[(i,j)] - z[(i,j)] ≥ 0)
   end
 
-  @addConstraint(model, sum{z[(i,j)], (i,j) = E} ≥ L)
+  @constraint(model, sum(z[(i,j)] for (i,j) in E) ≥ L)
 
   # Solve
-  status = solve(model)
+  optimize!(model)
 
-  return getObjectiveValue(model)
+  return objective_value(model)
 end
 
 function generate_adams_graph()
-  graph = Graphs.simple_graph(7, is_directed = false)
+  graph = Graphs.SimpleGraph(7)
 
   Graphs.add_edge!(graph, 1, 2) # 1
   Graphs.add_edge!(graph, 2, 3) # 2
@@ -105,14 +108,14 @@ function generate_adams_graph()
 end
 
 function generate_graph(seed::UInt32, n::Int; max_weight = 10)
-  srand(seed)
+  Random.seed!(seed)
 
   V = collect(1:n) # set of vertices
   E = Tuple{Int, Int}[]
-  C = Int[]
-  c = Int[]
+  C = zeros(Int64, n, n)
+  c = zeros(Int64, n, n)
 
-  g = Graphs.simple_graph(n, is_directed = false)
+  g = Graphs.SimpleGraph(n)
   while length(Graphs.connected_components(g)) > 1
     source = rand(V)
     target = rand(V)
@@ -121,8 +124,8 @@ function generate_graph(seed::UInt32, n::Int; max_weight = 10)
     else
       push!(E, (source, target))
       Graphs.add_edge!(g, source, target)
-      push!(C, rand(1:max_weight))
-      push!(c, rand(1:max_weight))
+      C[source, target] = rand(1:max_weight)
+      c[source, target] = rand(1:max_weight)
     end
   end
 
@@ -136,8 +139,8 @@ function test(seed::UInt32, n::Int, i::Int)
     i += 1
     result1 = solve_model(n, # number of vertices
                           E, # set of edges
-                          [e => C[i] for (i, e) in enumerate(E)], # initial costs
-                          [e => c[i] for (i, e) in enumerate(E)], # actual costs
+                          Dict([(i,j) => C[i,j] for (i, j) in E]), # initial costs
+                          Dict([(i,j) => c[i,j] for (i, j) in E]), # actual costs
                           n - k - 1)
     result2 = SpanningTreeAlgorithm.solve(k, g, C, c)
     println("(seed = ", seed, ", n = ", n, ", k = ", k, ") => ", result1, ", ", result2)
@@ -154,6 +157,6 @@ include("algorithm.jl")
 
 i = 0
 for seed in 0x00000001:0x000000FF, n in 3:12
- i = test(seed, n, i)
+ global i = test(seed, n, i)
 end
 println(i)

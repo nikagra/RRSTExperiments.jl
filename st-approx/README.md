@@ -10,7 +10,11 @@ Dependencies
 This package depends on:
 
 * `Graphs.jl` package
+* `JuMP` package
+* `GLPKMathProgInterface` package
 * `plot()` function uses [graphviz](http://www.graphviz.org/) library by default
+
+To install a package run `import Pkg; Pkg.add("{package_name}")`.
 
 model.jl
 ----------

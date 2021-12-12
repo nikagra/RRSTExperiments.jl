@@ -188,7 +188,7 @@ function get_path(x::Array, y::Array, admissible_graph::Graphs.AbstractGraph)
         path_copy = [copy(path); v_n]
 
         # path found
-        if v_n ∈ x && (shortest_path == nothing || length(path_copy) < length(shortest_path))
+        if v_n ∈ x && (shortest_path === nothing || length(path_copy) < length(shortest_path))
           shortest_path = path_copy
         else
           push!(queue, (v_n, path_copy))
@@ -221,8 +221,8 @@ function is_acyclic(g, t; directed = false)
   if directed # if graph is directed use Graphs library
     return !Graphs.test_cyclic_by_dfs(tree_graph)
   else # custom implementation of DFS otherwise
-    visited_vertices = falses(Graphs.num_vertices(tree_graph))
-    visited_edges = falses(Graphs.num_edges(tree_graph))
+    visited_vertices = falses(Graphs.nv(tree_graph))
+    visited_edges = falses(Graphs.ne(tree_graph))
 
     for v in Graphs.vertices(tree_graph)
       if visited_vertices[v]
@@ -334,10 +334,10 @@ end
 
 # Exported function
 function solve(K::Int, g::Graphs.AbstractGraph, w1::Array{Int}, w2::Array{Int})
-  L = Graphs.num_vertices(g) - K - 1 # |V| - K - 1, K - recovery parameter
+  L = Graphs.nv(g) - K - 1 # |V| - K - 1, K - recovery parameter
 
-  t_x, _ = Graphs.kruskal_minimum_spantree(g, w1) # _ for anonymous variable
-  t_y, _ = Graphs.kruskal_minimum_spantree(g, w2)
+  t_x = Graphs.kruskal_mst(g, w1) # _ for anonymous variable
+  t_y = Graphs.kruskal_mst(g, w2)
 
   w1_star, w2_star = copy(w1), copy(w2)
 
@@ -371,13 +371,13 @@ function solve(K::Int, g::Graphs.AbstractGraph, w1::Array{Int}, w2::Array{Int})
     # Theorem 4: ∃(T_X', T_Y') satysfying SSOC for θ and |Z'|=|Z|+1
     # Find path from Y to X first
     path_indices = get_path(x, y, admissible_graph)
-    @assert(path_indices != nothing)
+    @assert(path_indices !== nothing)
     path = map(i -> Graphs.edges(g)[i], path_indices)
 
     # Next modify t_x and t_y as described in the proof of Theorem 4
     t_x, t_y = update_trees(g, t_x, w1_star, t_y, w2_star, path, z)
-    @assert(is_acyclic(g, t_x) && length(t_x) == Graphs.num_vertices(g) - 1)
-    @assert(is_acyclic(g, t_y) && length(t_y) == Graphs.num_vertices(g) - 1)
+    @assert(is_acyclic(g, t_x) && length(t_x) == Graphs.nv(g) - 1)
+    @assert(is_acyclic(g, t_y) && length(t_y) == Graphs.nv(g) - 1)
 
   end
 
