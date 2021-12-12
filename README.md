@@ -7,16 +7,8 @@ This package provides an implementation of _recoverable minimum spanning tree pr
 
 Dependencies
 ------------
-This package depends on:
 
-* `Graphs.jl` package
-* `JuMP` package
-* `GLPKMathProgInterface` package
-* `plot()` function uses [graphviz](http://www.graphviz.org/) library by default
-
-To install a package run `import Pkg; Pkg.add("{package_name}")`.
-
-model.jl
+rec_st_lp.jl
 ----------
 `model.jl` file contains a model for solving the minimum spanning tree problem written in
 [JuMP](http://www.juliaopt.org/notebooks/Shuvomoy%20-%20Getting%20started%20with%20JuMP.html]) modelling language.
@@ -25,7 +17,7 @@ To be able to run this model you need `JuMP` and `GLPKMathProgInterface` Julia p
 
 Usage
 -----
-In order to run comparison tests load `model.jl` file:
+In order to run comparison tests load `rec_st_lp.jl` file:
 ```
 julia> include("model.jl")
 ```
