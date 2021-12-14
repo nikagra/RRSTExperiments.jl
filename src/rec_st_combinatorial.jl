@@ -1,4 +1,3 @@
-# requires julia v0.4
 module SpanningTreeAlgorithm
 
 export solve

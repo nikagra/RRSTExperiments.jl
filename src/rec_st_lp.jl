@@ -4,81 +4,83 @@ using GLPK
 using Graphs
 using Random
 
-function solve_model(n::Int,
-                    E::Array{Tuple{Int, Int}},
-                    C::Dict{Tuple{Int,Int}, Int},
-                    c::Dict{Tuple{Int,Int}, Int},
-                    L::Int)
+struct Edge
+	i::Int       # edge {i,j}
+	j::Int
+  C::Float64
+	c::Float64   # cij  the cost of edge {i,j}
+end
+
+function solve_rec_st_with_LP(n::Int, E::Vector{Edge}, k::Int)
 
   V = collect(1:n) # set of nodes
-  V_k = setdiff(V, [1]) # commodity nodes
-  A = E ∪ [(j, i) for (i, j) in E]
+  Vminus1 = setdiff(V, [1]) # commodity nodes
+  A = [(e.i, e.j) for e ∈ E] ∪ [(e.j, e.i) for e ∈ E]
+  L = n-1-k
 
   # Model
   model = Model(GLPK.Optimizer)
   set_optimizer_attribute(model, "msg_lev", 0)
 
   # Variables
-  @variable(model, fx[A, setdiff(V, [1])] ≥ 0)
+  @variable(model, fx[A, Vminus1] ≥ 0)
   @variable(model, wx[A] ≥ 0)
   @variable(model, x[E] ≥ 0)
 
-  @variable(model, fy[A, setdiff(V, [1])] ≥ 0)
+  @variable(model, fy[A, Vminus1] ≥ 0)
   @variable(model, wy[A] ≥ 0)
   @variable(model, y[E] ≥ 0)
-
   @variable(model, z[E] ≥ 0)
 
+
   # Objective
-  @objective(model, Min, sum(C[(i,j)]*x[(i,j)] + c[(i,j)]*y[(i,j)] for (i,j) in E))
+  @objective(model, Min, sum(e.C * x[e] for e ∈ E) + sum(e.c * y[e] for e ∈ E))
 
   #Constraints
-  for k in V_k # sources
-    @constraint(model, sum(fx[(j,i),k] for (j,i) in filter(e -> e[2] == 1, A)) -
-      sum(fx[(i,j),k] for (i,j) in filter(e -> e[1] == 1, A)) == -1)
-
-    @constraint(model, sum(fy[(j,i),k] for (j,i) in filter(e -> e[2] == 1, A)) -
-      sum(fy[(i,j),k] for (i,j) in filter(e -> e[1] == 1, A)) == -1)
+  #Constraints
+  for k ∈ Vminus1 # sources
+      @constraint(model, sum(fx[(j,1),k] for j ∈ filter(j -> (j,1) ∈ A, V)) -
+      sum(fx[(1,j),k] for j ∈ filter(j -> (1,j) ∈ A,V)) == -1)
+      @constraint(model, sum(fy[(j,1),k] for j ∈ filter(j -> (j,1) ∈ A, V)) -
+      sum(fy[(1,j),k] for j ∈ filter(j -> (1,j) ∈ A,V)) == -1)
   end
 
-  for k in V_k, i in V_k # balances
-    if i ≠ k
-      @constraint(model, sum(fx[(j,i),k] for j in filter(j -> (j,i) ∈ A, V)) -
-        sum(fx[(i,j),k] for j in filter(j -> (i,j) ∈ A, V)) == 0)
-
-      @constraint(model, sum(fy[(j,i),k] for j in filter(j -> (j,i) ∈ A, V)) -
-        sum(fy[(i,j),k] for j in filter(j -> (i,j) ∈ A, V)) == 0)
-    end
+  for k ∈ Vminus1, i ∈ Vminus1 # balances
+      if i ≠ k
+          @constraint(model, sum(f[(j,i),k] for j ∈ filter(j -> (j,i) ∈ A, V)) -
+          sum(f[(i,j),k] for j ∈ filter(j -> (i,j) ∈ A, V)) == 0)
+          @constraint(model, sum(fy[(j,i),k] for j ∈ filter(j -> (j,i) ∈ A, V)) -
+          sum(fy[(i,j),k] for j ∈ filter(j -> (i,j) ∈ A, V)) == 0)
+      end
   end
 
-  for k in V_k # sinks
-    @constraint(model, sum(fx[(j,i),k] for (j,i) in filter(e -> e[2] == k, A)) -
-      sum(fx[(i,j),k] for (i,j) in filter(e -> e[1] == k, A)) == 1)
-
-    @constraint(model, sum(fy[(j,i),k] for (j,i) in filter(e -> e[2] == k, A)) -
-      sum(fy[(i,j),k] for (i,j) in filter(e -> e[1] == k, A)) == 1)
+  for k ∈ Vminus1 # sinks
+      @constraint(model, sum(f[(j,k),k] for j ∈ filter(j -> (j,k) ∈ A,V)) -
+      sum(f[(k,j),k] for j ∈ filter(j -> (k,j) ∈ A,V)) == 1)
+      @constraint(model, sum(fy[(j,k),k] for j ∈ filter(j -> (j,k) ∈ A,V)) -
+      sum(fy[(k,j),k] for j ∈ filter(j -> (k,j) ∈ A,V)) == 1)
   end
 
-  for k in V_k, (i,j) in A # capacity
-    @constraint(model, fx[(i,j),k] ≤ wx[(i,j)])
-    @constraint(model, fy[(i,j),k] ≤ wy[(i,j)])
+  for k ∈ Vminus1, a ∈ A # capacity
+      @constraint(model, fx[a,k] ≤ wx[a])
+      @constraint(model, fy[a,k] ≤ wy[a]) 
   end
 
-  # tree 1
-  @constraint(model, sum(wx[(i,j)] for (i,j) in A) == n - 1)
-  @constraint(model, sum(wy[(i,j)] for (i,j) in A) == n - 1)
+  # tree
+  @constraint(model, sum(wx[a] for a ∈ A) == n - 1)
+  @constraint(model, sum(wy[a] for a ∈ A) == n - 1)
 
-  for (i,j) in E # tree 2
-    @constraint(model, x[(i,j)] == wx[(i,j)] + wx[(j,i)])
-    @constraint(model, y[(i,j)] == wy[(i,j)] + wy[(j,i)])
+  for e ∈ E
+      @constraint(model, x[e] == wx[(e.i, e.j)] + wx[(e.j, e.i)])
+      @constraint(model, y[e] == wy[(e.i, e.j)] + wy[(e.j, e.i)])
   end
 
-  for (i,j) in E
-    @constraint(model, x[(i,j)] - z[(i,j)] ≥ 0)
-    @constraint(model, y[(i,j)] - z[(i,j)] ≥ 0)
+  for e ∈ E
+      @constraint(model, x[e] ≥ z[e])
+      @constraint(model, y[e] ≥ z[e])
   end
 
-  @constraint(model, sum(z[(i,j)] for (i,j) in E) ≥ L)
+  @constraint(model, sum(z[e] for e ∈ E) ≥ L)
 
   # Solve
   optimize!(model)
@@ -135,13 +137,10 @@ end
 function test(seed::UInt32, n::Int, i::Int)
   E, g, C, c = generate_graph(seed, n)
 
+  A = [Edge(a, b, C[i], c[i]) for (i, (a,b)) in enumerate(E)]
   for k in 0:(n - 1)
     i += 1
-    result1 = solve_model(n, # number of vertices
-                          E, # set of edges
-                          Dict([(i,j) => C[i,j] for (i, j) in E]), # initial costs
-                          Dict([(i,j) => c[i,j] for (i, j) in E]), # actual costs
-                          n - k - 1)
+    result1 = solve_rec_st_with_LP(n, A, k)
     result2 = SpanningTreeAlgorithm.solve(k, g, C, c)
     println("(seed = ", seed, ", n = ", n, ", k = ", k, ") => ", result1, ", ", result2)
     if result1 ≠ result2
@@ -153,7 +152,7 @@ function test(seed::UInt32, n::Int, i::Int)
   return i
 end
 
-include("algorithm.jl")
+include("rec_st_combinatorial.jl")
 
 i = 0
 for seed in 0x00000001:0x000000FF, n in 3:12

@@ -16,6 +16,7 @@ function solve_inc_st(n::Int, E::Vector{Edge}, x::Vector{Tuple{Int, Int}}, k::In
     Vminus1 = setdiff(V, [1]) # commodity nodes
     A = [(e.i, e.j) for e ∈ E] ∪ [(e.j, e.i) for e ∈ E]
     X = Dict([(e.i, e.j) => ((e.i, e.j) ∈ x ? 1 : 0) for e ∈ E])
+    L = n-1-k
 
     # Model
     model = Model(GLPK.Optimizer)
@@ -26,7 +27,7 @@ function solve_inc_st(n::Int, E::Vector{Edge}, x::Vector{Tuple{Int, Int}}, k::In
     @variable(model, f[A, Vminus1] ≥ 0) # flow variables
 
     # Objective
-    @objective(model, Min, sum(e.c * (y[e]) for e ∈ E))
+    @objective(model, Min, sum(e.c * y[e] for e ∈ E))
 
     #Constraints
     for k ∈ Vminus1 # sources
@@ -46,7 +47,7 @@ function solve_inc_st(n::Int, E::Vector{Edge}, x::Vector{Tuple{Int, Int}}, k::In
         sum(f[(k,j),k] for j ∈ filter(j -> (k,j) ∈ A,V)) == 1)
     end
 
-    for k ∈ Vminus1, a ∈ A # capacitw
+    for k ∈ Vminus1, a ∈ A # capacity
         @constraint(model, f[a,k] ≤ w[a]) 
     end
 
@@ -57,7 +58,7 @@ function solve_inc_st(n::Int, E::Vector{Edge}, x::Vector{Tuple{Int, Int}}, k::In
         @constraint(model, y[e] == w[(e.i, e.j)] + w[(e.j, e.i)])
     end
 
-    @constraint(model, sum(y[e] * X[(e.i, e.j)] for e ∈ E) ≥ n-1-k)
+    @constraint(model, sum(y[e] * X[(e.i, e.j)] for e ∈ E) ≥ L)
 
     # Solve
     set_silent(model)
@@ -77,7 +78,7 @@ n = 6
 E = [Edge(1,2,2.0), Edge(1,3,6.0), Edge(2,4,4.0), Edge(2,5,7.0), 
      Edge(3,4,2.0), Edge(4,6,10.0), Edge(5,6,9.0)]
 x = [(1,2), (2,5), (5,6), (4,6), (3,4)]
-k = 0
+k = 1
 status, obj_value, y = solve_inc_st(n, E, x, k)
 if status == MOI.OPTIMAL
     println("the total cost: ", obj_value)
