@@ -42,7 +42,6 @@ function solve_rec_st_hurwicz(n::Int,
     @objective(model, Min, sum(e.C * x[e] for e ∈ E) + λ * sum(e.c * y¹[e] for e ∈ E) + (1-λ) * sum((e.c + e.d) * y²[e] for e ∈ E))
 
     #Constraints
-    #Constraints
     for k ∈ Vminus1 # sources
         @constraint(model, sum(fx[(j,1),k] for j ∈ filter(j -> (j,1) ∈ A, V)) -
         sum(fx[(1,j),k] for j ∈ filter(j -> (1,j) ∈ A,V)) == -1)
@@ -101,9 +100,17 @@ function solve_rec_st_hurwicz(n::Int,
     @constraint(model, sum(z²[e] for e ∈ E) ≥ L)
 
     # Solve
+    set_silent(model)
     optimize!(model)
+    unset_silent(model)
 
-    return objective_value(model)
+    status=termination_status(model)
+    obj_value = objective_value(model)
+    if status == MOI.OPTIMAL
+        return status, obj_value, value.(x),value.(y¹), value.(y²)
+    else
+        return status, missing, missing
+    end
 end
 
 n = 6
@@ -122,11 +129,20 @@ E = [
 ]
 k = 1
 λ = 1.0
-status, obj_value, y = solve_rec_st_hurwicz(n, E, k, λ)
+status, obj_value, x, y¹, y² = solve_rec_st_hurwicz(n, E, k, λ)
 if status == MOI.OPTIMAL
-    println("the total cost: ", obj_value)
+    println("Total cost: ", obj_value)
+    println("X:")
     for e in E
-        println("(",e.i,",",e.j,"): ",y[e]) # a spanning tree
+        println("(",e.i,",",e.j,"): ",x[e])
+    end
+    println("Y¹:")
+    for e in E
+        println("(",e.i,",",e.j,"): ",y¹[e])
+    end
+    println("Y²:")
+    for e in E
+        println("(",e.i,",",e.j,"): ",y²[e])
     end
 else
   println("Status: ", status)
