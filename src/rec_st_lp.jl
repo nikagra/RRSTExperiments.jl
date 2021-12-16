@@ -63,7 +63,7 @@ function solve_rec_st_with_LP(n::Int, E::Vector{Edge}, k::Int)
 
   for k ∈ Vminus1, a ∈ A # capacity
       @constraint(model, fx[a,k] ≤ wx[a])
-      @constraint(model, fy[a,k] ≤ wy[a]) 
+      @constraint(model, fy[a,k] ≤ wy[a])
   end
 
   # tree
