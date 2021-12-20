@@ -1,16 +1,10 @@
 using JuMP
 using GLPK
 
-struct Edge
-	i::Int       # edge {i,j}
-	j::Int
-    C::Float64
-	c::Float64   # cij  the cost of edge {i,j}
-    d::Float64
-end
+import RRSTExperiments: InputEdge
 
 function solve_rec_st_hurwicz(n::Int,
-    E::Vector{Edge},
+    E::Vector{InputEdge},
     k::Int,
     λ::Float64)
 
@@ -113,37 +107,39 @@ function solve_rec_st_hurwicz(n::Int,
     end
 end
 
-n = 6
-E = [
-    Edge(1, 2, 0, 9, 1) # 1
-    Edge(2, 3, 2, 5, 1) # 2
-    Edge(3, 4, 1, 1, 1) # 3
-    Edge(1, 4, 1, 2, 1) # 4
-    Edge(2, 4, 5, 4, 1) # 5
-    Edge(1, 5, 8, 3, 1) # 6
-    Edge(4, 6, 0, 6, 1) # 7
-    Edge(5, 6, 3, 2, 1) # 8
-    Edge(5, 7, 5, 9, 1) # 9
-    Edge(6, 7, 7, 2, 1) # 10
-    Edge(1, 6, 2, 3, 1) # 11
-]
-k = 1
-λ = 1.0
-status, obj_value, x, y¹, y² = solve_rec_st_hurwicz(n, E, k, λ)
-if status == MOI.OPTIMAL
-    println("Total cost: ", obj_value)
-    println("X:")
-    for e in E
-        println("(",e.i,",",e.j,"): ",x[e])
+if false
+    n = 6
+    E = [
+        InputEdge(1, 2, 0.0, 9.0, 1.0) # 1
+        InputEdge(2, 3, 2.0, 5.0, 1.0) # 2
+        InputEdge(3, 4, 1.0, 1.0, 1.0) # 3
+        InputEdge(1, 4, 1.0, 2.0, 1.0) # 4
+        InputEdge(2, 4, 5.0, 4.0, 1.0) # 5
+        InputEdge(1, 5, 8.0, 3.0, 1.0) # 6
+        InputEdge(4, 6, 0.0, 6.0, 1.0) # 7
+        InputEdge(5, 6, 3.0, 2.0, 1.0) # 8
+        InputEdge(5, 7, 5.0, 9.0, 1.0) # 9
+        InputEdge(6, 7, 7.0, 2.0, 1.0) # 10
+        InputEdge(1, 6, 2.0, 3.0, 1.0) # 11
+    ]
+    k = 1
+    λ = 1.0
+    status, obj_value, x, y¹, y² = solve_rec_st_hurwicz(n, E, k, λ)
+    if status == MOI.OPTIMAL
+        println("Total cost: ", obj_value)
+        println("X:")
+        for e in E
+            println("(",e.i,",",e.j,"): ",x[e])
+        end
+        println("Y¹:")
+        for e in E
+            println("(",e.i,",",e.j,"): ",y¹[e])
+        end
+        println("Y²:")
+        for e in E
+            println("(",e.i,",",e.j,"): ",y²[e])
+        end
+    else
+    println("Status: ", status)
     end
-    println("Y¹:")
-    for e in E
-        println("(",e.i,",",e.j,"): ",y¹[e])
-    end
-    println("Y²:")
-    for e in E
-        println("(",e.i,",",e.j,"): ",y²[e])
-    end
-else
-  println("Status: ", status)
 end

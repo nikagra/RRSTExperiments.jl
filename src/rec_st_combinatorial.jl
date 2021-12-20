@@ -1,12 +1,11 @@
-module SpanningTreeAlgorithm
-
-export solve
-
 using Graphs
 
-function opposite_node(edge::Graphs.Edge, node)
-  @assert(Graphs.source(edge) == node || Graphs.target(edge) == node)
-  return Graphs.source(edge) == node ? Graphs.target(edge) : Graphs.source(edge)
+import RRSTExperiments: InputEdge
+
+
+function opposite_node(edge::Edge, node)
+  @assert(Graphs.src(edge) == node || Graphs.dst(edge) == node)
+  return Graphs.src(edge) == node ? Graphs.dst(edge) : Graphs.src(edge)
 end
 
 """
@@ -15,15 +14,15 @@ end
 Finds unique path in spanning tree `tree` between endpoints of `edge`and returns
 list edges on this path (if `edge ∈ tree`, then `[edge]` is returned).
 """
-function get_edge_path(tree, edge)
-  source = Graphs.source(edge)
-  target = Graphs.target(edge)
+function get_edge_path(tree::Array{Edge{Int64}}, edge::Edge{Int64})
+  source = Graphs.src(edge)
+  target = Graphs.dst(edge)
 
   queue = Tuple{Int, Array{Int}}[] # Breadth-first search
   push!(queue, (source, Int[]))
   while !isempty(queue)
-    node, path = shift!(queue)
-    indices = find(e -> Graphs.source(e) == node || Graphs.target(e) == node, tree)
+    node, path = pop!(queue)
+    indices = findall(e -> Graphs.src(e) == node || Graphs.dst(e) == node, tree)
     for index in indices
       if index ∉ path
         new_source = opposite_node(tree[index], node)
@@ -47,17 +46,17 @@ Returns a list of addmissible nodes, which are:
 * each `v ∈ nodes` reachible from any node in `y` by a directed path formed
 of edges `e ∈ edges` is admissible
 """
-function get_admissible_nodes(y, nodes, edges)
-  queue = [Graphs.edge_index(e) for e in y] # every e ∈ y is admissible
+function get_admissible_nodes(y::Array{Int64}, nodes::Array{Int64}, edges::Array{Edge{Int64}})
+  queue = copy(y) # every e ∈ y is admissible
 
   visited = falses(length(nodes))
-  for i in [Graphs.edge_index(e) for e in y]
+  for i in y
     visited[i] = true
   end
 
   while !isempty(queue)
-    v_1 = shift!(queue)
-    indices = find(e -> Graphs.source(e) == v_1, edges)
+    v_1 = pop!(queue)
+    indices = findall(e -> Graphs.src(e) == v_1, edges)
     for i in indices
          v_2 = opposite_node(edges[i], v_1)
          if !visited[v_2]
@@ -76,41 +75,36 @@ end
 Builds admissible graph for graph `g`, using minimum spanning trees `t_x`
 (with cost vector `w_1`) and `t_y` (with cost vector `w_2`)
 """
-function build_admissible_graph(graph::Graphs.AbstractGraph, t_x::Array, w_1::Array, t_y::Array, w_2::Array)
-  # TODO: declare required interfaces (Graphs.@graph_requires graph edge_list)
-
+function build_admissible_graph(edge_indices::Dict{Edge{Int64}, Int64}, t_x::Array{Edge{Int64}}, w_1::Array{Float64}, t_y::Array{Edge{Int64}}, w_2::Array{Float64})
   # First step
-  vertices = Graphs.vertices(graph)
-  edges = Graphs.edges(graph)
-
-  v_0 = [Graphs.edge_index(e) for e in Graphs.edges(graph)]
-  e_0 = Graphs.Edge{Int}[]
-  for (e, w1_e, w2_e) in zip(edges, w_1, w_2)
+  v_0 = values(edge_indices) |> collect
+  e_0 = Edge{Int64}[]
+  for (e, w1_e, w2_e) in zip(keys(edge_indices), w_1, w_2)
 
     if e ∉ t_x
-      for (f, w1_f) in zip(edges, w_1)
+      for (f, w1_f) in zip(keys(edge_indices), w_1)
         if f ∈ get_edge_path(t_x, e) && w1_e == w1_f # && C_e^* == C_f^*
-          push!(e_0, Graphs.Edge(length(e_0) + 1, Graphs.edge_index(e), Graphs.edge_index(f)))
+          push!(e_0, Edge(edge_indices[e], edge_indices[f]))
         end
       end
     end
 
     if e ∉ t_y
-      for (f, w2_f) in zip(edges, w_2)
+      for (f, w2_f) in zip(keys(edge_indices), w_2)
         if f ∈ get_edge_path(t_y, e) && w2_e == w2_f # && \overline{c}_e^* == \overline{c}_f^*
-          push!(e_0, Graphs.Edge(length(e_0) + 1, Graphs.edge_index(f), Graphs.edge_index(e)))
+          push!(e_0, Edge(edge_indices[f], edge_indices[e]))
         end
       end
     end
   end
 
   # Second step
-  y = setdiff(t_y, t_x)
+  y = [edge_indices[e] for e in setdiff(t_y, t_x)]
   admissible_nodes = get_admissible_nodes(y, v_0, e_0)
   v_0 = filter(v -> v ∈ admissible_nodes, v_0)
-  e_0 = filter(e -> Graphs.source(e) ∈ admissible_nodes && Graphs.target(e) ∈ admissible_nodes, e_0)
+  e_0 = filter(e -> Graphs.src(e) ∈ admissible_nodes && Graphs.dst(e) ∈ admissible_nodes, e_0)
 
-  return Graphs.graph(v_0, e_0)
+  return (v_0, e_0)
 end
 
 """
@@ -140,16 +134,17 @@ function find_δ_star(g, t_x, w_1, t_y, w_2)
 end
 
 """
-    modify_costs_with_δ(g, v_0, δ_star, w1_star, w2_star)
+    modify_costs_with_δ!(edge_indices, v_0, δ_star, w1_star, w2_star)
 
 Modifies vectors of costs `w1_star` and `w2_star` using value of `δ_star`according to rules:
 
 * if some edge is in `v_0`, then w1_star(δ) = w1_star - δ, w2_star(δ) = w2_star
 * if some edge is not in `v_0`, then w1_star(δ) = w1_star, w2_star(δ) = w2_star-δ
 """
-function modify_costs_with_δ(g, v_0, δ_star, w1_star, w2_star)
-  for (i, e) in enumerate(Graphs.edges(g))
-    if Graphs.edge_index(e) ∈ v_0
+function modify_costs_with_δ!(edge_indices::Dict{Edge{Int64}, Int64}, v_0, δ_star, w1_star, w2_star)
+  for e in keys(edge_indices)
+    i = edge_indices[e]
+    if i ∈ v_0
       w1_star[i] -= δ_star
     else
       w2_star[i] -= δ_star
@@ -178,10 +173,10 @@ function get_path(x::Array, y::Array, admissible_graph::Graphs.AbstractGraph)
 
   shortest_path = nothing
   while !isempty(queue)
-    (v, path) = shift!(queue)
+    (v, path) = pop!(queue)
     if v ∈ v_a
-      next_edges = filter(i -> Graphs.target(e_a[i]) ∉ path,
-          find(x -> Graphs.source(x) == v, e_a))
+      next_edges = filter(i -> Graphs.dst(e_a[i]) ∉ path,
+          findall(x -> Graphs.src(x) == v, e_a))
       for e_n in next_edges
         v_n = opposite_node(e_a[e_n], v)
         path_copy = [copy(path); v_n]
@@ -202,7 +197,7 @@ end
 function get_adjacent_edges(g, v; directed = false)
   edges = Graphs.Edge[]
   for e_x in Graphs.edges(g) #visit neighbours
-    if Graphs.source(e_x) == v || (Graphs.target(e_x) == v && !directed)
+    if Graphs.src(e_x) == v || (Graphs.dst(e_x) == v && !directed)
       push!(edges, e_x)
     end
   end
@@ -213,7 +208,7 @@ function is_acyclic(g, t; directed = false)
   # Workaround for https://github.com/JuliaLang/Graphs.jl/issues/220
   edges = Graphs.Edge[]
   for e in t
-    push!(edges, Graphs.Edge(length(edges) + 1, Graphs.source(e), Graphs.target(e)))
+    push!(edges, Graphs.Edge(Graphs.src(e), Graphs.dst(e)))
   end
   tree_graph = Graphs.graph(collect(Graphs.vertices(g)), edges)
 
@@ -332,38 +327,53 @@ function get_objective_value(g, t_x, w1, t_y, w2)
 end
 
 # Exported function
-function solve(K::Int, g::Graphs.AbstractGraph, w1::Array{Int}, w2::Array{Int})
-  L = Graphs.nv(g) - K - 1 # |V| - K - 1, K - recovery parameter
+function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
+  L = n - k - 1 # |V| - K - 1, K - recovery parameter
 
-  t_x = Graphs.kruskal_mst(g, w1) # _ for anonymous variable
-  t_y = Graphs.kruskal_mst(g, w2)
+  g = SimpleGraph(n)
+  for e in A
+    add_edge!(g, e.i, e.j)
+  end
+
+  w1 = [e.C for e in A]
+  w2 = [e.c for e in A]
+
+  w1_mat = zeros(Float64, n, n)
+  w2_mat = zeros(Float64, n, n)
+  for e in A
+    w1_mat[e.i, e.j] = e.C
+    w2_mat[e.i, e.j] = e.c
+  end
+
+  t_x = kruskal_mst(g, w1_mat)
+  t_y = kruskal_mst(g, w2_mat)
+
+  edges = Graphs.edges(g)
+  edge_indices = Dict([e => i for (i, e) in enumerate(edges)])
 
   w1_star, w2_star = copy(w1), copy(w2)
 
   while length(t_x ∩ t_y) < L
-    admissible_graph = build_admissible_graph(g, t_x, w1_star, t_y, w2_star)
-
-    y = map(e -> Graphs.edge_index(e), setdiff(t_y, t_x))
-    x = map(e -> Graphs.edge_index(e), setdiff(t_x, t_y))
-    z = map(e -> Graphs.edge_index(e), t_x ∩ t_y)
-    w = map(e -> Graphs.edge_index(e), setdiff(setdiff(Graphs.edges(g), t_x), t_y))
+    y = map(e -> edge_indices[e], setdiff(t_y, t_x))
+    x = map(e -> edge_indices[e], setdiff(t_x, t_y))
+    z = map(e -> edge_indices[e], t_x ∩ t_y)
+    w = map(e -> edge_indices[e], setdiff(setdiff(Graphs.edges(g), t_x), t_y))
 
     if isempty(x) && isempty(y) # no further improvements could be done
       break
     end
 
     # Check if X ∩ V^0 ≠ ∅
-    v_0 = Graphs.vertices(admissible_graph)
+    v_0, _ = build_admissible_graph(edge_indices, t_x, w1_star, t_y, w2_star)
     while isempty(filter(e -> e ∈ v_0, x)) # no path from Y to X
       # Find δ*
       δ_star = find_δ_star(g, t_x, w1_star, t_y, w2_star)
 
       # Modify costs
-      w1_star, w2_star = modify_costs_with_δ(g, v_0, δ_star, w1_star, w2_star)
+      w1_star, w2_star = modify_costs_with_δ!(edge_indices, v_0, δ_star, w1_star, w2_star)
 
       # Add some new nodes to admission graph
-      admissible_graph = build_admissible_graph(g, t_x, w1_star, t_y, w2_star)
-      v_0 = Graphs.vertices(admissible_graph)
+      v_0, _  = build_admissible_graph(edge_indices, t_x, w1_star, t_y, w2_star)
       # repeat until there is a path from y to x
     end
 
@@ -381,6 +391,4 @@ function solve(K::Int, g::Graphs.AbstractGraph, w1::Array{Int}, w2::Array{Int})
   end
 
   return get_objective_value(g, t_x, w1, t_y, w2)
-end
-
 end

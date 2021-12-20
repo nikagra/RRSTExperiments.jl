@@ -1,17 +1,14 @@
-# The incremental minimum spanning tree problem
-
-export solve_inc_st
-
 using JuMP
 using GLPK
 
-struct Edge
-	i::Int       # edge {i,j}
-	j::Int
-	c::Float64   # cij  the cost of edge {i,j}
-end
+import RRSTExperiments: InputEdge
 
-function solve_inc_st(n::Int, E::Vector{Edge}, x::Vector{Tuple{Int, Int}}, k::Int)
+"""
+    solve_inc_st(n::Int, E::Vector{InputEdge}, x::Vector{Tuple{Int, Int}}, k::Int)
+
+The incremental minimum spanning tree problem
+"""
+function solve_inc_st(n::Int, E::Vector{InputEdge}, x::Vector{Tuple{Int, Int}}, k::Int)
     V = collect(1:n) # set of nodes
     Vminus1 = setdiff(V, [1]) # commodity nodes
     A = [(e.i, e.j) for e ∈ E] ∪ [(e.j, e.i) for e ∈ E]
@@ -74,17 +71,18 @@ function solve_inc_st(n::Int, E::Vector{Edge}, x::Vector{Tuple{Int, Int}}, k::In
     end
 end
 
-n = 6
-E = [Edge(1,2,2.0), Edge(1,3,6.0), Edge(2,4,4.0), Edge(2,5,7.0), 
-     Edge(3,4,2.0), Edge(4,6,10.0), Edge(5,6,9.0)]
-x = [(1,2), (2,5), (5,6), (4,6), (3,4)]
-k = 1
-status, obj_value, y = solve_inc_st(n, E, x, k)
-if status == MOI.OPTIMAL
-    println("the total cost: ", obj_value)
-    for e in E
-        println("(",e.i,",",e.j,"): ",y[e]) # a spanning tree
+if false
+    n = 6
+    E = [InputEdge(1,2,2.0), InputEdge(1,3,6.0), InputEdge(2,4,4.0), InputEdge(2,5,7.0), InputEdge(3,4,2.0), InputEdge(4,6,10.0), InputEdge(5,6,9.0)]
+    x = [(1,2), (2,5), (5,6), (4,6), (3,4)]
+    k = 1
+    status, obj_value, y = solve_inc_st(n, E, x, k)
+    if status == MOI.OPTIMAL
+        println("the total cost: ", obj_value)
+        for e in E
+            println("(",e.i,",",e.j,"): ",y[e]) # a spanning tree
+        end
+    else
+    println("Status: ", status)
     end
-else
-  println("Status: ", status)
 end

@@ -1,17 +1,7 @@
 
-using JuMP
-using GLPK
-using Graphs
-using Random
+import RRSTExperiments: InputEdge
 
-struct Edge
-	i::Int       # edge {i,j}
-	j::Int
-  C::Float64
-	c::Float64   # cij  the cost of edge {i,j}
-end
-
-function solve_rec_st_with_LP(n::Int, E::Vector{Edge}, k::Int)
+function solve_rec_st_with_LP(n::Int, E::Vector{InputEdge}, k::Int)
 
   V = collect(1:n) # set of nodes
   Vminus1 = setdiff(V, [1]) # commodity nodes
@@ -47,16 +37,16 @@ function solve_rec_st_with_LP(n::Int, E::Vector{Edge}, k::Int)
 
   for k ∈ Vminus1, i ∈ Vminus1 # balances
       if i ≠ k
-          @constraint(model, sum(f[(j,i),k] for j ∈ filter(j -> (j,i) ∈ A, V)) -
-          sum(f[(i,j),k] for j ∈ filter(j -> (i,j) ∈ A, V)) == 0)
+          @constraint(model, sum(fx[(j,i),k] for j ∈ filter(j -> (j,i) ∈ A, V)) -
+          sum(fx[(i,j),k] for j ∈ filter(j -> (i,j) ∈ A, V)) == 0)
           @constraint(model, sum(fy[(j,i),k] for j ∈ filter(j -> (j,i) ∈ A, V)) -
           sum(fy[(i,j),k] for j ∈ filter(j -> (i,j) ∈ A, V)) == 0)
       end
   end
 
   for k ∈ Vminus1 # sinks
-      @constraint(model, sum(f[(j,k),k] for j ∈ filter(j -> (j,k) ∈ A,V)) -
-      sum(f[(k,j),k] for j ∈ filter(j -> (k,j) ∈ A,V)) == 1)
+      @constraint(model, sum(fx[(j,k),k] for j ∈ filter(j -> (j,k) ∈ A,V)) -
+      sum(fx[(k,j),k] for j ∈ filter(j -> (k,j) ∈ A,V)) == 1)
       @constraint(model, sum(fy[(j,k),k] for j ∈ filter(j -> (j,k) ∈ A,V)) -
       sum(fy[(k,j),k] for j ∈ filter(j -> (k,j) ∈ A,V)) == 1)
   end
@@ -87,75 +77,3 @@ function solve_rec_st_with_LP(n::Int, E::Vector{Edge}, k::Int)
 
   return objective_value(model)
 end
-
-function generate_adams_graph()
-  graph = Graphs.SimpleGraph(7)
-
-  Graphs.add_edge!(graph, 1, 2) # 1
-  Graphs.add_edge!(graph, 2, 3) # 2
-  Graphs.add_edge!(graph, 3, 4) # 3
-  Graphs.add_edge!(graph, 1, 4) # 4
-  Graphs.add_edge!(graph, 2, 4) # 5
-  Graphs.add_edge!(graph, 1, 5) # 6
-  Graphs.add_edge!(graph, 4, 6) # 7
-  Graphs.add_edge!(graph, 5, 6) # 8
-  Graphs.add_edge!(graph, 5, 7) # 9
-  Graphs.add_edge!(graph, 6, 7) # 10
-  Graphs.add_edge!(graph, 1, 6) # 11
-
-  weights_1 = [0, 2, 1, 1, 5, 8, 0, 3, 5, 7, 2] # initial costs
-  weights_2 = [9, 5, 1, 2, 4, 3, 6, 2, 9, 2, 3] # actual costs
-
-  return graph, weights_1, weights_2
-end
-
-function generate_graph(seed::UInt32, n::Int; max_weight = 10)
-  Random.seed!(seed)
-
-  V = collect(1:n) # set of vertices
-  E = Tuple{Int, Int}[]
-  C = zeros(Int64, n, n)
-  c = zeros(Int64, n, n)
-
-  g = Graphs.SimpleGraph(n)
-  while length(Graphs.connected_components(g)) > 1
-    source = rand(V)
-    target = rand(V)
-    if source == target || (source, target) ∈ E || (target, source) ∈ E
-      continue
-    else
-      push!(E, (source, target))
-      Graphs.add_edge!(g, source, target)
-      C[source, target] = rand(1:max_weight)
-      c[source, target] = rand(1:max_weight)
-    end
-  end
-
-  return (E, g, C, c)
-end
-
-function test(seed::UInt32, n::Int, i::Int)
-  E, g, C, c = generate_graph(seed, n)
-
-  A = [Edge(a, b, C[i], c[i]) for (i, (a,b)) in enumerate(E)]
-  for k in 0:(n - 1)
-    i += 1
-    result1 = solve_rec_st_with_LP(n, A, k)
-    result2 = SpanningTreeAlgorithm.solve(k, g, C, c)
-    println("(seed = ", seed, ", n = ", n, ", k = ", k, ") => ", result1, ", ", result2)
-    if result1 ≠ result2
-      print("Values of objective function differ (", result1, "≠", result2, ") ")
-      println("with seed ", seed, ", ", n, " vertices and k = ", k)
-    end
-  end
-
-  return i
-end
-
-include("rec_st_combinatorial.jl")
-
-i = 0
-for seed in 0x00000001:0x000000FF, n in 3:12
- global i = test(seed, n, i)
-end
-println(i)

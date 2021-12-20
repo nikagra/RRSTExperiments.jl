@@ -1,23 +1,4 @@
-Recoverable Minimum Spanning Tree Problem
-=========================================
+# RRSTExperiments
 
-Introduction
-------------
-This package provides an implementation of _recoverable minimum spanning tree problem_ in polynomial time in Julia language
-
-Dependencies
-------------
-
-rec_st_lp.jl
-----------
-`model.jl` file contains a model for solving the minimum spanning tree problem written in
-[JuMP](http://www.juliaopt.org/notebooks/Shuvomoy%20-%20Getting%20started%20with%20JuMP.html]) modelling language.
-
-To be able to run this model you need `JuMP` and `GLPKMathProgInterface` Julia packages to be installed first.
-
-Usage
------
-In order to run comparison tests load `rec_st_lp.jl` file:
-```
-julia> include("model.jl")
-```
+[![Build Status](https://github.com/nikagra/RRSTExperiments.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/nikagra/RRSTExperiments.jl/actions/workflows/CI.yml?query=branch%3Amaster)
+[![Coverage](https://codecov.io/gh/nikagra/RRSTExperiments.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/nikagra/RRSTExperiments.jl)

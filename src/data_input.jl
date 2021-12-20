@@ -1,5 +1,3 @@
-using Random, Distributions
-
 function parse_graph_data(name::String)
     local n
     E = Tuple{Int64, Int64}[]
