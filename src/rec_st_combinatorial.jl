@@ -113,18 +113,19 @@ end
 Finds δ*, which is the smallest value of δ for which inequality originaly not
 tight becomes tight
 """
-function find_δ_star(g, t_x, w_1, t_y, w_2)
+function find_δ_star(edge_indices::Dict{Edge{Int64}, Int64}, t_x, w_1, t_y, w_2)
   δ = Inf;
 
-  for (i, e) in enumerate(Graphs.edges(g))
-    for (j, f) in enumerate(Graphs.edges(g))
+  edges = keys(edge_indices)
+  for e₁ in edges
+    for e₂ in edges
 
-      if e ∉ t_x && f ∈ get_edge_path(t_x, e) && 0 < w_1[i] - w_1[j] < δ
-        δ = w_1[i] - w_1[j]
+      if e₁ ∉ t_x && e₂ ∈ get_edge_path(t_x, e₁) && 0 < w_1[edge_indices[e₁]] - w_1[edge_indices[e₂]] < δ
+        δ = w_1[edge_indices[e₁]] - w_1[edge_indices[e₂]]
       end
 
-      if f ∉ t_y && e ∈ get_edge_path(t_y, f) && 0 < w_2[j] - w_2[i] < δ
-        δ = w_2[j] - w_2[i]
+      if e₂ ∉ t_y && e₁ ∈ get_edge_path(t_y, e₂) && 0 < w_2[edge_indices[e₂]] - w_2[edge_indices[e₁]] < δ
+        δ = w_2[edge_indices[e₂]] - w_2[edge_indices[e₁]]
       end
     end
   end
@@ -367,7 +368,7 @@ function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
     v_0, _ = build_admissible_graph(edge_indices, t_x, w1_star, t_y, w2_star)
     while isempty(filter(e -> e ∈ v_0, x)) # no path from Y to X
       # Find δ*
-      δ_star = find_δ_star(g, t_x, w1_star, t_y, w2_star)
+      δ_star = find_δ_star(edge_indices, t_x, w1_star, t_y, w2_star)
 
       # Modify costs
       w1_star, w2_star = modify_costs_with_δ!(edge_indices, v_0, δ_star, w1_star, w2_star)
