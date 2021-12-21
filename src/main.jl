@@ -69,8 +69,9 @@ function test(seed::UInt32, n::Int, i::Int)
     return i
 end
 
-i = 0
-for seed in 0x00000001:0x000000FF, n in 3:12
-  global i = test(seed, n, i)
-end
-println(i)
+test(0x00000001, 7, 0)
+# i = 0
+# for seed in 0x00000001:0x000000FF, n in 7:7
+#   global i = test(seed, n, i)
+# end
+# println(i)

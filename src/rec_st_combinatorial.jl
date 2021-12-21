@@ -395,10 +395,6 @@ function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
 
     # Next modify t_x and t_y as described in the proof of Theorem 4
     t_x, t_y = update_trees(edge_indices, t_x, w1_star, t_y, w2_star, path, z)
-
-    @assert(is_acyclic(g, t_x) && length(t_x) == n - 1)
-    @assert(is_acyclic(g, t_y) && length(t_y) == n - 1)
-
   end
 
   return get_objective_value(g, t_x, w1, t_y, w2)
