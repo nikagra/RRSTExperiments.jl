@@ -79,10 +79,11 @@ function build_admissible_graph(edge_indices::Dict{Edge{Int64}, Int64}, t_x::Arr
   # First step
   v_0 = values(edge_indices) |> collect
   e_0 = Edge{Int64}[]
-  for (e, w1_e, w2_e) in zip(keys(edge_indices), w_1, w_2)
+  indices = [(e, w_1[edge_indices[e]], w_2[edge_indices[e]]) for e in keys(edge_indices)]
+  for (e, w1_e, w2_e) in indices
 
     if e ∉ t_x
-      for (f, w1_f) in zip(keys(edge_indices), w_1)
+      for (f, w1_f, _) in indices
         if f ∈ get_edge_path(t_x, e) && w1_e == w1_f # && C_e^* == C_f^*
           push!(e_0, Edge(edge_indices[e], edge_indices[f]))
         end
@@ -90,7 +91,7 @@ function build_admissible_graph(edge_indices::Dict{Edge{Int64}, Int64}, t_x::Arr
     end
 
     if e ∉ t_y
-      for (f, w2_f) in zip(keys(edge_indices), w_2)
+      for (f, _, w2_f) in indices
         if f ∈ get_edge_path(t_y, e) && w2_e == w2_f # && \overline{c}_e^* == \overline{c}_f^*
           push!(e_0, Edge(edge_indices[f], edge_indices[e]))
         end
@@ -161,10 +162,7 @@ end
 Finds a path from one of the edges in `y` to one of the edges in `x` using
 an admissible graph `admissible_graph`
 """
-function get_path(x::Array, y::Array, admissible_graph::Graphs.AbstractGraph)
-  v_a = Graphs.vertices(admissible_graph) # admissible vertices
-  e_a = Graphs.edges(admissible_graph) # admissible edges
-
+function get_path(x::Array, y::Array, v_a::Array{Int64}, e_a::Array{Edge{Int64}})
   queue = Tuple{Int, Array{Int}}[]
 
   # Put all edges of Y to queue
@@ -247,19 +245,20 @@ function is_acyclic(g, t; directed = false)
   end
 end
 
-function update_trees(g::Graphs.AbstractGraph,
-                      t_x::Array,
-                      w_1::Array{Int},
-                      t_y::Array,
-                      w_2::Array{Int},
-                      path::Array,
-                      z::Array)
+function update_trees(edge_indices::Dict{Edge{Int64}, Int64},
+                      t_x::Array{Edge{Int64}},
+                      w_1::Array{Float64},
+                      t_y::Array{Edge{Int64}},
+                      w_2::Array{Float64},
+                      path::Array{Edge{Int64}},
+                      z::Array{Int64})
   path_len = length(path)
+  edges = keys(edge_indices) |> collect
   if path_len == 2
     e = path[1] # e ∈ Y
     f = path[2] # f ∈ X
-    i_e = findfirst(Graphs.edges(g), e)
-    i_f = findfirst(Graphs.edges(g), f)
+    i_e = findfirst(x -> x === e, edges)
+    i_f = findfirst(x -> x === f, edges)
 
     can_modify_x = e ∉ t_x && f ∈ get_edge_path(t_x, e)
     can_modify_y = f ∉ t_y && e ∈ get_edge_path(t_y, f)
@@ -327,17 +326,11 @@ function get_objective_value(g, t_x, w1, t_y, w2)
   return sum
 end
 
-# Exported function
-function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
-  L = n - k - 1 # |V| - K - 1, K - recovery parameter
-
+function get_initial_trees(n::Int, A::Array{InputEdge})
   g = SimpleGraph(n)
   for e in A
     add_edge!(g, e.i, e.j)
   end
-
-  w1 = [e.C for e in A]
-  w2 = [e.c for e in A]
 
   w1_mat = zeros(Float64, n, n)
   w2_mat = zeros(Float64, n, n)
@@ -349,7 +342,19 @@ function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
   t_x = kruskal_mst(g, w1_mat)
   t_y = kruskal_mst(g, w2_mat)
 
-  edges = Graphs.edges(g)
+  return t_x, t_y
+end
+
+# Exported function
+function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
+  L = n - k - 1 # |V| - K - 1, K - recovery parameter
+
+  w1 = [e.C for e in A]
+  w2 = [e.c for e in A]
+
+  t_x, t_y = get_initial_trees(n, A)
+
+  edges = [Edge(e.i, e.j) for e in A]
   edge_indices = Dict([e => i for (i, e) in enumerate(edges)])
 
   w1_star, w2_star = copy(w1), copy(w2)
@@ -358,36 +363,41 @@ function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
     y = map(e -> edge_indices[e], setdiff(t_y, t_x))
     x = map(e -> edge_indices[e], setdiff(t_x, t_y))
     z = map(e -> edge_indices[e], t_x ∩ t_y)
-    w = map(e -> edge_indices[e], setdiff(setdiff(Graphs.edges(g), t_x), t_y))
+    w = map(e -> edge_indices[e], setdiff(setdiff(edges, t_x), t_y))
 
     if isempty(x) && isempty(y) # no further improvements could be done
       break
     end
 
     # Check if X ∩ V^0 ≠ ∅
-    v_0, _ = build_admissible_graph(edge_indices, t_x, w1_star, t_y, w2_star)
+    v_0, e_0 = build_admissible_graph(edge_indices, t_x, w1_star, t_y, w2_star)
     while isempty(filter(e -> e ∈ v_0, x)) # no path from Y to X
+      println("v_0=$v_0")
       # Find δ*
       δ_star = find_δ_star(edge_indices, t_x, w1_star, t_y, w2_star)
+      println("δ_star=$δ_star")
 
       # Modify costs
       w1_star, w2_star = modify_costs_with_δ!(edge_indices, v_0, δ_star, w1_star, w2_star)
+      println("w1_star=$w1_star, w2_star=$w2_star")
 
       # Add some new nodes to admission graph
-      v_0, _  = build_admissible_graph(edge_indices, t_x, w1_star, t_y, w2_star)
+      v_0, e_0 = build_admissible_graph(edge_indices, t_x, w1_star, t_y, w2_star)
       # repeat until there is a path from y to x
     end
 
     # Theorem 4: ∃(T_X', T_Y') satysfying SSOC for θ and |Z'|=|Z|+1
     # Find path from Y to X first
-    path_indices = get_path(x, y, admissible_graph)
+    path_indices = get_path(x, y, v_0, e_0)
+    println("path_indices=$path_indices")
     @assert(path_indices !== nothing)
-    path = map(i -> Graphs.edges(g)[i], path_indices)
+    path = filter(e -> edge_indices[e] ∈ path_indices, edges |> collect)
 
     # Next modify t_x and t_y as described in the proof of Theorem 4
-    t_x, t_y = update_trees(g, t_x, w1_star, t_y, w2_star, path, z)
-    @assert(is_acyclic(g, t_x) && length(t_x) == Graphs.nv(g) - 1)
-    @assert(is_acyclic(g, t_y) && length(t_y) == Graphs.nv(g) - 1)
+    t_x, t_y = update_trees(edge_indices, t_x, w1_star, t_y, w2_star, path, z)
+
+    @assert(is_acyclic(g, t_x) && length(t_x) == n - 1)
+    @assert(is_acyclic(g, t_y) && length(t_y) == n - 1)
 
   end
 

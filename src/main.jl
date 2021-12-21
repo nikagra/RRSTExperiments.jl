@@ -5,24 +5,24 @@ Pkg.activate(".")
 using RRSTExperiments
 
 function generate_adams_graph()
-    graph = Graphs.SimpleGraph(7)
+  E = [
+      (1, 2) # 1
+      (1, 3) # 2
+      (2, 3) # 3
+      (2, 4) # 4
+      (3, 4) # 5
+      (3, 5) # 6
+      (4, 5) # 7
+      (4, 6) # 8
+      (5, 6) # 9
+      (6, 7) # 10
+      (5, 7) # 11
+    ]
+
+    weights_1 = [2.0, 1.0, 8.0, 0.0, 1.0, 0.0, 2.0, 8.0, 3.0, 5.0, 7.0] # initial costs
+    weights_2 = [5.0, 1.0, 3.0, 9.0, 2.0, 6.0, 3.0, 3.0, 2.0, 9.0, 2.0] # actual costs
   
-    Graphs.add_edge!(graph, 1, 2) # 1
-    Graphs.add_edge!(graph, 2, 3) # 2
-    Graphs.add_edge!(graph, 3, 4) # 3
-    Graphs.add_edge!(graph, 1, 4) # 4
-    Graphs.add_edge!(graph, 2, 4) # 5
-    Graphs.add_edge!(graph, 1, 5) # 6
-    Graphs.add_edge!(graph, 4, 6) # 7
-    Graphs.add_edge!(graph, 5, 6) # 8
-    Graphs.add_edge!(graph, 5, 7) # 9
-    Graphs.add_edge!(graph, 6, 7) # 10
-    Graphs.add_edge!(graph, 1, 6) # 11
-  
-    weights_1 = [0, 2, 1, 1, 5, 8, 0, 3, 5, 7, 2] # initial costs
-    weights_2 = [9, 5, 1, 2, 4, 3, 6, 2, 9, 2, 3] # actual costs
-  
-    return graph, weights_1, weights_2
+    return E, weights_1, weights_2
   end
   
   function generate_graph(seed::UInt32, n::Int; max_weight = 10)
@@ -51,17 +51,18 @@ function generate_adams_graph()
   end
   
 function test(seed::UInt32, n::Int, i::Int)
-    E, C, c = generate_graph(seed, n)
+    E, C, c = generate_adams_graph()
 
     A = [InputEdge(a, b, C[i], c[i]) for (i, (a,b)) in enumerate(E)]
     for k in 0:(n - 1)
         i += 1
+        print("(seed = \"$seed\", n = \"$n\", k = \"$k\") => ")
         result1 = RRSTExperiments.solve_rec_st_with_LP(n, A, k)
         result2 = RRSTExperiments.solve_rec_st_with_algorithm(n, A, k)
-        println("(seed = ", seed, ", n = ", n, ", k = ", k, ") => ", result1, ", ", result2)
+        println(result1, ", ", result2)
         if result1 ≠ result2
-        print("Values of objective function differ (", result1, "≠", result2, ") ")
-        println("with seed ", seed, ", ", n, " vertices and k = ", k)
+          print("Values of objective function differ (", result1, "≠", result2, ") ")
+          println("with seed ", seed, ", ", n, " vertices and k = ", k)
         end
     end
 
@@ -70,6 +71,6 @@ end
 
 i = 0
 for seed in 0x00000001:0x000000FF, n in 3:12
-global i = test(seed, n, i)
+  global i = test(seed, n, i)
 end
 println(i)
