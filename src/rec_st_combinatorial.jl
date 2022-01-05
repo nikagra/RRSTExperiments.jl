@@ -253,12 +253,11 @@ function update_trees(edge_indices::Dict{Edge{Int64}, Int64},
                       path::Array{Edge{Int64}},
                       z::Array{Int64})
   path_len = length(path)
-  edges = keys(edge_indices) |> collect
   if path_len == 2
     e = path[1] # e ∈ Y
     f = path[2] # f ∈ X
-    i_e = findfirst(x -> x === e, edges)
-    i_f = findfirst(x -> x === f, edges)
+    i_e = edge_indices[e]
+    i_f = edge_indices[f]
 
     can_modify_x = e ∉ t_x && f ∈ get_edge_path(t_x, e)
     can_modify_y = f ∉ t_y && e ∈ get_edge_path(t_y, f)
@@ -271,7 +270,7 @@ function update_trees(edge_indices::Dict{Edge{Int64}, Int64},
       push!(t_y, f)
     end
 
-  elseif Graphs.edge_index(path[2]) ∈ z # case 2
+  elseif edge_indices[path[2]] ∈ z # case 2
     e_x = path[1:2:path_len-1]
     g_x = path[2:2:path_len]
     e_y = Array{Graphs.Edge}[]
@@ -312,15 +311,18 @@ function update_trees(edge_indices::Dict{Edge{Int64}, Int64},
   return t_x,t_y
 end
 
-function get_objective_value(g, t_x, w1, t_y, w2)
+function get_objective_value(edge_indices::Dict{Edge{Int64}, Int64},
+                            t_x::Array{Edge{Int64}},
+                            w_1::Array{Float64},
+                            t_y::Array{Edge{Int64}},
+                            w_2::Array{Float64},)
   sum = 0;
-  edges = Graphs.edges(g)
-  for (i, e) in enumerate(edges)
+  for (e, i) in edge_indices
     if e ∈ t_x
-      sum += w1[i]
+      sum += w_1[i]
     end
     if e ∈ t_y
-      sum += w2[i]
+      sum += w_2[i]
     end
   end
   return sum
@@ -336,7 +338,10 @@ function get_initial_trees(n::Int, A::Array{InputEdge})
   w2_mat = zeros(Float64, n, n)
   for e in A
     w1_mat[e.i, e.j] = e.C
+    w1_mat[e.j, e.i] = e.C
+
     w2_mat[e.i, e.j] = e.c
+    w2_mat[e.j, e.i] = e.c
   end
 
   t_x = kruskal_mst(g, w1_mat)
@@ -354,7 +359,7 @@ function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
 
   t_x, t_y = get_initial_trees(n, A)
 
-  edges = [Edge(e.i, e.j) for e in A]
+  edges = [e.i < e.j ? Edge(e.i, e.j) : Edge(e.j, e.i) for e in A]
   edge_indices = Dict([e => i for (i, e) in enumerate(edges)])
 
   w1_star, w2_star = copy(w1), copy(w2)
@@ -372,14 +377,11 @@ function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
     # Check if X ∩ V^0 ≠ ∅
     v_0, e_0 = build_admissible_graph(edge_indices, t_x, w1_star, t_y, w2_star)
     while isempty(filter(e -> e ∈ v_0, x)) # no path from Y to X
-      println("v_0=$v_0")
       # Find δ*
       δ_star = find_δ_star(edge_indices, t_x, w1_star, t_y, w2_star)
-      println("δ_star=$δ_star")
 
       # Modify costs
       w1_star, w2_star = modify_costs_with_δ!(edge_indices, v_0, δ_star, w1_star, w2_star)
-      println("w1_star=$w1_star, w2_star=$w2_star")
 
       # Add some new nodes to admission graph
       v_0, e_0 = build_admissible_graph(edge_indices, t_x, w1_star, t_y, w2_star)
@@ -389,13 +391,12 @@ function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
     # Theorem 4: ∃(T_X', T_Y') satysfying SSOC for θ and |Z'|=|Z|+1
     # Find path from Y to X first
     path_indices = get_path(x, y, v_0, e_0)
-    println("path_indices=$path_indices")
     @assert(path_indices !== nothing)
-    path = filter(e -> edge_indices[e] ∈ path_indices, edges |> collect)
+    path = [findfirst(x -> x == i, edge_indices) for i ∈ path_indices]
 
     # Next modify t_x and t_y as described in the proof of Theorem 4
     t_x, t_y = update_trees(edge_indices, t_x, w1_star, t_y, w2_star, path, z)
   end
 
-  return get_objective_value(g, t_x, w1, t_y, w2)
+  return get_objective_value(edge_indices, t_x, w1, t_y, w2)
 end

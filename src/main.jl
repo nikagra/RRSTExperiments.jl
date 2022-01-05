@@ -51,7 +51,7 @@ function generate_adams_graph()
   end
   
 function test(seed::UInt32, n::Int, i::Int)
-    E, C, c = generate_adams_graph()
+    E, C, c = generate_graph(seed, n)
 
     A = [InputEdge(a, b, C[i], c[i]) for (i, (a,b)) in enumerate(E)]
     for k in 0:(n - 1)
@@ -69,9 +69,8 @@ function test(seed::UInt32, n::Int, i::Int)
     return i
 end
 
-test(0x00000001, 7, 0)
-# i = 0
-# for seed in 0x00000001:0x000000FF, n in 7:7
-#   global i = test(seed, n, i)
-# end
-# println(i)
+i = 0
+for seed in 0x00000001:0x000000FF, n in 3:12
+  global i = test(seed, n, i)
+end
+println(i)
