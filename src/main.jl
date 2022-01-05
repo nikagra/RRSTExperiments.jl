@@ -56,13 +56,10 @@ function test(seed::UInt32, n::Int, i::Int)
     A = [InputEdge(a, b, C[i], c[i]) for (i, (a,b)) in enumerate(E)]
     for k in 0:(n - 1)
         i += 1
-        print("(seed = \"$seed\", n = \"$n\", k = \"$k\") => ")
         result1 = RRSTExperiments.solve_rec_st_with_LP(n, A, k)
         result2 = RRSTExperiments.solve_rec_st_with_algorithm(n, A, k)
-        println(result1, ", ", result2)
-        if result1 ≠ result2
-          print("Values of objective function differ (", result1, "≠", result2, ") ")
-          println("with seed ", seed, ", ", n, " vertices and k = ", k)
+        if abs(result1 - result2) >= 10 * eps(result1)
+          print("Values of objective function differ (", result1, "≠", result2, ") for seed = \"$seed\", n = \"$n\", k = \"$k\"")
         end
     end
 

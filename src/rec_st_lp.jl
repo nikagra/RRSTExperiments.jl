@@ -1,7 +1,7 @@
 
 import RRSTExperiments: InputEdge
 
-function solve_rec_st_with_LP(n::Int, E::Vector{InputEdge}, k::Int)
+function solve_rec_st_with_LP(n::Int, E::Vector{InputEdge}, k::Int)::Float64
 
   V = collect(1:n) # set of nodes
   Vminus1 = setdiff(V, [1]) # commodity nodes

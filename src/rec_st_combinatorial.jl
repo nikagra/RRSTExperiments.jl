@@ -351,7 +351,7 @@ function get_initial_trees(n::Int, A::Array{InputEdge})
 end
 
 # Exported function
-function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
+function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)::Float64
   L = n - k - 1 # |V| - K - 1, K - recovery parameter
 
   w1 = [e.C for e in A]
