@@ -45,5 +45,3 @@ Random.seed!(seed)
 β = 4
 dist = Beta(α, β)
 d = generate_uncertain_costs(dist, c)
-println("Max cost: $(maximum(c))")
-println("Max uncertainty: $(maximum(d))")

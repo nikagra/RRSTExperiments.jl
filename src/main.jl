@@ -59,7 +59,7 @@ function test(seed::UInt32, n::Int, i::Int)
         result1 = RRSTExperiments.solve_rec_st_with_LP(n, A, k)
         result2 = RRSTExperiments.solve_rec_st_with_algorithm(n, A, k)
         if abs(result1 - result2) >= 10 * eps(result1)
-          print("Values of objective function differ (", result1, "≠", result2, ") for seed = \"$seed\", n = \"$n\", k = \"$k\"")
+          println("Values of objective function differ (", result1, "≠", result2, ") for seed = \"$seed\", n = \"$n\", k = \"$k\"")
         end
     end
 
@@ -67,7 +67,9 @@ function test(seed::UInt32, n::Int, i::Int)
 end
 
 i = 0
-for seed in 0x00000001:0x000000FF, n in 3:12
-  global i = test(seed, n, i)
+for seed in 0x00000001:0x000000FF
+  for n in 5:25
+    global i = test(seed, n, i)
+  end
+  println("Number of completed experiments: ", i)
 end
-println(i)
