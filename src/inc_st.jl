@@ -1,6 +1,3 @@
-using JuMP
-using GLPK
-
 import RRSTExperiments: InputEdge
 
 """
@@ -16,7 +13,8 @@ function solve_inc_st(n::Int, E::Vector{InputEdge}, x::Vector{Tuple{Int, Int}}, 
     L = n-1-k
 
     # Model
-    model = Model(GLPK.Optimizer)
+    model = Model(Cbc.Optimizer)
+    set_optimizer_attribute(model, "logLevel", 1)
 
     # Variables
     @variable(model, y[E] ≥ 0) # yₑ=1 if e∈E belongs to the spanning tree; 0 otherwise 
@@ -58,9 +56,7 @@ function solve_inc_st(n::Int, E::Vector{InputEdge}, x::Vector{Tuple{Int, Int}}, 
     @constraint(model, sum(y[e] * X[(e.i, e.j)] for e ∈ E) ≥ L)
 
     # Solve
-    set_silent(model)
     optimize!(model)
-    unset_silent(model)
 
     status=termination_status(model)
     obj_value = objective_value(model)

@@ -334,8 +334,8 @@ function get_initial_trees(n::Int, A::Array{InputEdge})
     add_edge!(g, e.i, e.j)
   end
 
-  w1_mat = zeros(Float64, n, n)
-  w2_mat = zeros(Float64, n, n)
+  w1_mat = spzeros(Float64, n, n)
+  w2_mat = spzeros(Float64, n, n)
   for e in A
     w1_mat[e.i, e.j] = e.C
     w1_mat[e.j, e.i] = e.C

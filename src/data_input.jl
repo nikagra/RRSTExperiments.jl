@@ -1,7 +1,7 @@
 function parse_graph_data(name::String)
     local n
     E = Tuple{Int64, Int64}[]
-    C = Int64[]
+    C = Float64[]
     open(name) do file
         while ! eof(file)
             line = readline(file)
@@ -29,19 +29,7 @@ function parse_graph_data(name::String)
     return n, E, C
 end
 
-function generate_uncertain_costs(dist::Distribution, c::Vector{Int64})
+function generate_uncertain_costs(dist::Distribution, c::Vector{Float64})
     d = map(cᵢ -> cᵢ * rand(dist), c)
     return d
 end
-
-n, E, C = parse_graph_data("res/USA-road-t.NY.gr")
-
-c = copy(C)
-
-seed = 0x5336
-Random.seed!(seed)
-
-α = 1
-β = 4
-dist = Beta(α, β)
-d = generate_uncertain_costs(dist, c)

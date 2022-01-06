@@ -1,6 +1,3 @@
-using JuMP
-using GLPK
-
 import RRSTExperiments: InputEdge
 
 function solve_rec_st_hurwicz(n::Int,
@@ -14,8 +11,8 @@ function solve_rec_st_hurwicz(n::Int,
     L = n-1-k
 
     # Model
-    model = Model(GLPK.Optimizer)
-    set_optimizer_attribute(model, "msg_lev", 0)
+    model = Model(Cbc.Optimizer)
+    set_optimizer_attribute(model, "logLevel", 0)
 
     # Variables
     @variable(model, fx[A, Vminus1] ≥ 0)
@@ -94,9 +91,7 @@ function solve_rec_st_hurwicz(n::Int,
     @constraint(model, sum(z²[e] for e ∈ E) ≥ L)
 
     # Solve
-    set_silent(model)
     optimize!(model)
-    unset_silent(model)
 
     status=termination_status(model)
     obj_value = objective_value(model)

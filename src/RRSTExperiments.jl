@@ -1,12 +1,14 @@
 module RRSTExperiments
 
-using JuMP
-using GLPK
+using JuMP, Cbc
 using Random, Distributions
 using Graphs
+using SparseArrays
 
 export InputEdge,
-    solve_rec_st_with_algorithm, solve_rec_st_with_LP, solve_rec_st_hurwicz, solve_inc_st
+    solve_rec_st_with_algorithm, solve_rec_st_with_LP, solve_rec_st_hurwicz, solve_inc_st,
+
+    parse_graph_data, generate_uncertain_costs
 
 struct InputEdge
     i::Int64
@@ -17,6 +19,7 @@ struct InputEdge
 
     InputEdge(i::Int, j::Int, C::Float64) = new(i, j, C, 0.0, 0.0)
     InputEdge(i::Int, j::Int, C::Float64, c::Float64) = new(i, j, C, c, 0.0)
+    InputEdge(i::Int, j::Int, C::Float64, c::Float64, d::Float64) = new(i, j, C, c, d)
 end
 
 include("./data_input.jl")

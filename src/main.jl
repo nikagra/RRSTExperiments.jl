@@ -1,75 +1,59 @@
 # https://medium.com/coffee-in-a-klein-bottle/developing-your-julia-package-682c1d309507
-using Random, Graphs
+using Random, Distributions
+using Graphs
 using Pkg, Revise
+using CSV, DataFrames
+
 Pkg.activate(".")
 using RRSTExperiments
-
-function generate_adams_graph()
-  E = [
-      (1, 2) # 1
-      (1, 3) # 2
-      (2, 3) # 3
-      (2, 4) # 4
-      (3, 4) # 5
-      (3, 5) # 6
-      (4, 5) # 7
-      (4, 6) # 8
-      (5, 6) # 9
-      (6, 7) # 10
-      (5, 7) # 11
-    ]
-
-    weights_1 = [2.0, 1.0, 8.0, 0.0, 1.0, 0.0, 2.0, 8.0, 3.0, 5.0, 7.0] # initial costs
-    weights_2 = [5.0, 1.0, 3.0, 9.0, 2.0, 6.0, 3.0, 3.0, 2.0, 9.0, 2.0] # actual costs
   
-    return E, weights_1, weights_2
+function prepare_graph(filename::String, seed::UInt32, α::Float64 = 1.0, β::Float64 = 4.0)
+  # Read vertices, edges and first stage costs
+  n, E, C = parse_graph_data(filename)
+
+  # Assume second stage costs are equal to first stage costs
+  c = copy(C)
+
+  # Generate uncertain costs
+  Random.seed!(seed)
+  dist = Beta(α, β)
+  d = generate_uncertain_costs(dist, c)
+
+  return (n, E, C, c, d)
+end
+  
+function experiment(seed::UInt32)
+  n, E, C, c, d = prepare_graph("res/rome99.gr", seed)
+
+  A = [InputEdge(a, b, C[i], c[i], d[i]) for (i, (a,b)) in enumerate(E)]
+  ns = []
+  ks = []
+  λs = []
+  cs = []
+  hs = []
+  for k in 0:0, λ in 0.0:0.1:0.5
+      result1 = RRSTExperiments.solve_rec_st_with_algorithm(n, A, k)
+      println("n=$n, k=$k, λ=$λ: RRST = $result1")
+
+      _, result2, _, _, _ = RRSTExperiments.solve_rec_st_hurwicz(n, A, k, λ)
+      println("n=$n, k=$k, λ=$λ: Hurwicz = $result2")
+
+      push!(ns, n)
+      push!(ks, k)
+      push!(λs, λ)
+      push!(cs, result1)
+      push!(hs, result2)
   end
-  
-  function generate_graph(seed::UInt32, n::Int; max_weight = 10)
-    Random.seed!(seed)
-  
-    V = collect(1:n) # set of vertices
-    E = Tuple{Int64, Int64}[]
-    C = Float64[]
-    c = Float64[]
-  
-    g = Graphs.SimpleGraph(n)
-    while length(Graphs.connected_components(g)) > 1
-      source = rand(V)
-      target = rand(V)
-      if source == target || (source, target) ∈ E || (target, source) ∈ E
-        continue
-      else
-        Graphs.add_edge!(g, source, target)
-        push!(E, (source, target))
-        push!(C, rand(1:max_weight))
-        push!(c, rand(1:max_weight))
-      end
-    end
-  
-    return (E, C, c)
-  end
-  
-function test(seed::UInt32, n::Int, i::Int)
-    E, C, c = generate_graph(seed, n)
 
-    A = [InputEdge(a, b, C[i], c[i]) for (i, (a,b)) in enumerate(E)]
-    for k in 0:(n - 1)
-        i += 1
-        result1 = RRSTExperiments.solve_rec_st_with_LP(n, A, k)
-        result2 = RRSTExperiments.solve_rec_st_with_algorithm(n, A, k)
-        if abs(result1 - result2) >= 10 * eps(result1)
-          println("Values of objective function differ (", result1, "≠", result2, ") for seed = \"$seed\", n = \"$n\", k = \"$k\"")
-        end
-    end
-
-    return i
+  # Write results
+  touch("rome99.csv")
+  f = open("rome99.csv", "w")
+ 
+  df = DataFrame(n = ns, k = ks, λ = λs, Combinatorial = cs, Hurwicz = hs)
+                
+  CSV.write("rome99.csv", df)
 end
 
-i = 0
-for seed in 0x00000001:0x000000FF
-  for n in 5:25
-    global i = test(seed, n, i)
-  end
-  println("Number of completed experiments: ", i)
+for seed in 0x00000001:0x00000001
+  experiment(seed)
 end

@@ -9,8 +9,8 @@ function solve_rec_st_with_LP(n::Int, E::Vector{InputEdge}, k::Int)::Float64
   L = n-1-k
 
   # Model
-  model = Model(GLPK.Optimizer)
-  set_optimizer_attribute(model, "msg_lev", 0)
+  model = Model(Cbc.Optimizer)
+  set_optimizer_attribute(model, "logLevel", 1)
 
   # Variables
   @variable(model, fx[A, Vminus1] ≥ 0)
