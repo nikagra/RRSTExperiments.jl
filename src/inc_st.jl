@@ -5,11 +5,12 @@ import RRSTExperiments: InputEdge
 
 The incremental minimum spanning tree problem
 """
-function solve_inc_st(n::Int, E::Vector{InputEdge}, x::Vector{Tuple{Int, Int}}, k::Int)
+function solve_inc_st(n::Int, S::Vector{Float64}, E::Vector{InputEdge}, x::Vector{Tuple{Int, Int}}, k::Int)
+    @assert length(S) == length(E)
     V = collect(1:n) # set of nodes
     Vminus1 = setdiff(V, [1]) # commodity nodes
     A = [(e.i, e.j) for e ∈ E] ∪ [(e.j, e.i) for e ∈ E]
-    X = Dict([(e.i, e.j) => ((e.i, e.j) ∈ x ? 1 : 0) for e ∈ E])
+    X = Dict([(e.i, e.j) => ((e.i, e.j) ∈ x || (e.j, e.i) ∈ x ? 1 : 0) for e ∈ E])
     L = n-1-k
 
     # Model
@@ -22,7 +23,7 @@ function solve_inc_st(n::Int, E::Vector{InputEdge}, x::Vector{Tuple{Int, Int}}, 
     @variable(model, f[A, Vminus1] ≥ 0) # flow variables
 
     # Objective
-    @objective(model, Min, sum(e.c * y[e] for e ∈ E))
+    @objective(model, Min, sum(S[i] * y[e] for (i, e) ∈ enumerate(E)))
 
     #Constraints
     for k ∈ Vminus1 # sources
@@ -59,26 +60,10 @@ function solve_inc_st(n::Int, E::Vector{InputEdge}, x::Vector{Tuple{Int, Int}}, 
     optimize!(model)
 
     status=termination_status(model)
-    obj_value = objective_value(model)
     if status == MOI.OPTIMAL
-        return status, obj_value, value.(y)
+        obj_value = objective_value(model)
+        return status, obj_value, Array(value.(y))
     else
         return status, missing, missing
-    end
-end
-
-if false
-    n = 6
-    E = [InputEdge(1,2,2.0), InputEdge(1,3,6.0), InputEdge(2,4,4.0), InputEdge(2,5,7.0), InputEdge(3,4,2.0), InputEdge(4,6,10.0), InputEdge(5,6,9.0)]
-    x = [(1,2), (2,5), (5,6), (4,6), (3,4)]
-    k = 1
-    status, obj_value, y = solve_inc_st(n, E, x, k)
-    if status == MOI.OPTIMAL
-        println("the total cost: ", obj_value)
-        for e in E
-            println("(",e.i,",",e.j,"): ",y[e]) # a spanning tree
-        end
-    else
-    println("Status: ", status)
     end
 end

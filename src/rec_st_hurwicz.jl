@@ -96,7 +96,7 @@ function solve_rec_st_hurwicz(n::Int,
     status=termination_status(model)
     obj_value = objective_value(model)
     if status == MOI.OPTIMAL
-        return status, obj_value, value.(x),value.(y¹), value.(y²)
+        return status, obj_value, Array(value.(x)), Array(value.(y¹)), Array(value.(y²))
     else
         return status, missing, missing
     end
@@ -120,21 +120,4 @@ if false
     k = 1
     λ = 1.0
     status, obj_value, x, y¹, y² = solve_rec_st_hurwicz(n, E, k, λ)
-    if status == MOI.OPTIMAL
-        println("Total cost: ", obj_value)
-        println("X:")
-        for e in E
-            println("(",e.i,",",e.j,"): ",x[e])
-        end
-        println("Y¹:")
-        for e in E
-            println("(",e.i,",",e.j,"): ",y¹[e])
-        end
-        println("Y²:")
-        for e in E
-            println("(",e.i,",",e.j,"): ",y²[e])
-        end
-    else
-    println("Status: ", status)
-    end
 end

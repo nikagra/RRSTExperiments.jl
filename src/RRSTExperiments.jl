@@ -6,9 +6,11 @@ using Graphs
 using SparseArrays
 
 export InputEdge,
-    solve_rec_st_with_algorithm, solve_rec_st_with_LP, solve_rec_st_hurwicz, solve_inc_st,
+    solve_rec_st_with_algorithm, solve_rec_st_model, solve_rob_st_model, solve_rec_st_hurwicz, solve_inc_st,
 
-    parse_graph_data, generate_uncertain_costs
+    parse_graph_data, generate_uncertain_costs, generate_scenario,
+
+    calculate_cost
 
 struct InputEdge
     i::Int64
@@ -22,11 +24,12 @@ struct InputEdge
     InputEdge(i::Int, j::Int, C::Float64, c::Float64, d::Float64) = new(i, j, C, c, d)
 end
 
-include("./data_input.jl")
+include("./utils.jl")
 
 include("./inc_st.jl")
 include("./rec_st_combinatorial.jl")
-include("./rec_st_lp.jl")
+include("./rec_st_model.jl")
+include("./rob_st_model.jl")
 include("./rec_st_hurwicz.jl")
 
 end

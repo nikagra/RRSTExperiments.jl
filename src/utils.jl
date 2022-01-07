@@ -30,6 +30,14 @@ function parse_graph_data(name::String)
 end
 
 function generate_uncertain_costs(dist::Distribution, c::Vector{Float64})
-    d = map(cᵢ -> cᵢ * rand(dist), c)
-    return d
+    return map(cᵢ -> cᵢ * rand(dist), c)
+end
+
+function generate_scenario(dist::Distribution, A::Vector{InputEdge})
+    return [e.c + rand(dist) * e.d for e ∈ A]
+end
+
+function calculate_cost(A::Vector{InputEdge}, x::Vector{Tuple{Int64, Int64}}, c::Float64)
+    C = sum([e.C for e ∈ A if (e.i, e.j) in x || (e.j, e.i) in x])
+    return C + c
 end

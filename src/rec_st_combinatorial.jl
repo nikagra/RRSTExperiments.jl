@@ -1,7 +1,4 @@
-using Graphs
-
 import RRSTExperiments: InputEdge
-
 
 function opposite_node(edge::Edge, node)
   @assert(Graphs.src(edge) == node || Graphs.dst(edge) == node)
@@ -350,12 +347,16 @@ function get_initial_trees(n::Int, A::Array{InputEdge})
   return t_x, t_y
 end
 
+function get_first_stage_solution(t_x::Array{Edge{Int64}})::Vector{Tuple{Int, Int}}
+  return [(e.src, e.dst) for e ∈ t_x]
+end
+
 # Exported function
-function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)::Float64
+function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
   L = n - k - 1 # |V| - K - 1, K - recovery parameter
 
   w1 = [e.C for e in A]
-  w2 = [e.c for e in A]
+  w2 = [e.c + e.d for e in A]
 
   t_x, t_y = get_initial_trees(n, A)
 
@@ -398,5 +399,7 @@ function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)::Float
     t_x, t_y = update_trees(edge_indices, t_x, w1_star, t_y, w2_star, path, z)
   end
 
-  return get_objective_value(edge_indices, t_x, w1, t_y, w2)
+  objective_value = get_objective_value(edge_indices, t_x, w1, t_y, w2)
+  tree = get_first_stage_solution(t_x)
+  return objective_value, tree
 end

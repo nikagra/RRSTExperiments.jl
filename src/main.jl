@@ -7,15 +7,13 @@ using CSV, DataFrames
 Pkg.activate(".")
 using RRSTExperiments
   
-function prepare_graph(filename::String, seed::UInt32, α::Float64 = 1.0, β::Float64 = 4.0)
+function prepare_graph(filename::String, α::Float64 = 1.0, β::Float64 = 4.0)
   # Read vertices, edges and first stage costs
   n, E, C = parse_graph_data(filename)
 
   # Assume second stage costs are equal to first stage costs
   c = copy(C)
 
-  # Generate uncertain costs
-  Random.seed!(seed)
   dist = Beta(α, β)
   d = generate_uncertain_costs(dist, c)
 
@@ -23,35 +21,47 @@ function prepare_graph(filename::String, seed::UInt32, α::Float64 = 1.0, β::Fl
 end
   
 function experiment(seed::UInt32)
-  n, E, C, c, d = prepare_graph("res/rome99.gr", seed)
+  # Generate uncertain costs
+  Random.seed!(seed)
+
+  # Prepare graph
+  n, E, C, c, d = prepare_graph("res/sample.gr")
+  m = length(E)
 
   A = [InputEdge(a, b, C[i], c[i], d[i]) for (i, (a,b)) in enumerate(E)]
-  ns = []
-  ks = []
-  λs = []
-  cs = []
-  hs = []
-  for k in 0:0, λ in 0.0:0.1:0.5
-      result1 = RRSTExperiments.solve_rec_st_with_algorithm(n, A, k)
-      println("n=$n, k=$k, λ=$λ: RRST = $result1")
+  ns = []; ks = []; cs = []; ms = []; nums = []; c1s = []; c2s = []
+  for k in [0, floor(Int64, 0.05 * m), floor(Int64, 0.1 * m), floor(Int64, 0.25 * m)]
+    print("n=$n, k=$k: ")
+      result1, x₁ = RRSTExperiments.solve_rec_st_with_algorithm(n, A, k)
+      print("RRST = $result1, ")
 
-      _, result2, _, _, _ = RRSTExperiments.solve_rec_st_hurwicz(n, A, k, λ)
-      println("n=$n, k=$k, λ=$λ: Hurwicz = $result2")
+      _, result2, x₂ = RRSTExperiments.solve_rob_st_model(n, A, k)
+      println("MM = $result2.")
+      println("x1=", x₁)
 
-      push!(ns, n)
-      push!(ks, k)
-      push!(λs, λ)
-      push!(cs, result1)
-      push!(hs, result2)
+      for i in 1:10
+        S = generate_scenario(Uniform(), A)
+        _, c₁, _ = RRSTExperiments.solve_inc_st(n, S, A, x₁, k)
+        _, c₂, _ = RRSTExperiments.solve_inc_st(n, S, A, x₂, k)
+
+        push!(ns, n)
+        push!(ks, k)
+        push!(cs, result1)
+        push!(ms, result2)
+        push!(nums, i)
+        push!(c1s, calculate_cost(A, x₁, c₁))
+        push!(c2s, calculate_cost(A, x₂, c₂))
+      end
   end
 
   # Write results
-  touch("rome99.csv")
-  f = open("rome99.csv", "w")
+  touch("sample.csv")
+  f = open("sample.csv", "w")
  
-  df = DataFrame(n = ns, k = ks, λ = λs, Combinatorial = cs, Hurwicz = hs)
+  df = DataFrame(num_vertices=ns, rec_param=ks, alg_sol_cost= cs, minmax_sol_cost=ms, experiment_num=nums, alg_eval_cost=c1s, minmax_eval_cost=c2s)
+  println(df)
                 
-  CSV.write("rome99.csv", df)
+  CSV.write("sample.csv", df)
 end
 
 for seed in 0x00000001:0x00000001
