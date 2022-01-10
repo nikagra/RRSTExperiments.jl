@@ -1,6 +1,6 @@
 module RRSTExperiments
 
-using JuMP, Cbc
+using JuMP, CPLEX
 using Random, Distributions
 using Graphs
 using SparseArrays

@@ -11,8 +11,8 @@ function solve_rec_st_hurwicz(n::Int,
     L = n-1-k
 
     # Model
-    model = Model(Cbc.Optimizer)
-    set_optimizer_attribute(model, "logLevel", 0)
+    model = Model(CPLEX.Optimizer)
+    set_optimizer_attribute(model, "CPX_PARAM_EPINT", 1e-8)
 
     # Variables
     @variable(model, fx[A, Vminus1] ≥ 0)

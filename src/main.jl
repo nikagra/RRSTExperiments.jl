@@ -35,9 +35,8 @@ function experiment(seed::UInt32)
       result1, x₁ = RRSTExperiments.solve_rec_st_with_algorithm(n, A, k)
       print("RRST = $result1, ")
 
-      _, result2, x₂ = RRSTExperiments.solve_rob_st_model(n, A, k)
+      result2, x₂ = RRSTExperiments.solve_rob_st_model(n, A)
       println("MM = $result2.")
-      println("x1=", x₁)
 
       for i in 1:10
         S = generate_scenario(Uniform(), A)
@@ -58,7 +57,7 @@ function experiment(seed::UInt32)
   touch("sample.csv")
   f = open("sample.csv", "w")
  
-  df = DataFrame(num_vertices=ns, rec_param=ks, alg_sol_cost= cs, minmax_sol_cost=ms, experiment_num=nums, alg_eval_cost=c1s, minmax_eval_cost=c2s)
+  df = DataFrame(num_vertices=ns, rec_param=ks, alg_sol_cost=cs, minmax_sol_cost=ms, experiment_num=nums, alg_eval_cost=c1s, minmax_eval_cost=c2s)
   println(df)
                 
   CSV.write("sample.csv", df)

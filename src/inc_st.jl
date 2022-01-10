@@ -14,8 +14,8 @@ function solve_inc_st(n::Int, S::Vector{Float64}, E::Vector{InputEdge}, x::Vecto
     L = n-1-k
 
     # Model
-    model = Model(Cbc.Optimizer)
-    set_optimizer_attribute(model, "logLevel", 1)
+    model = Model(CPLEX.Optimizer)
+    set_optimizer_attribute(model, "CPX_PARAM_EPINT", 1e-8)
 
     # Variables
     @variable(model, y[E] ≥ 0) # yₑ=1 if e∈E belongs to the spanning tree; 0 otherwise 

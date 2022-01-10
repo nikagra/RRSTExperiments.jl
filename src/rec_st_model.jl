@@ -8,8 +8,8 @@ function solve_rec_st_model(n::Int, E::Vector{InputEdge}, k::Int)::Float64
   L = n-1-k
 
   # Model
-  model = Model(Cbc.Optimizer)
-  set_optimizer_attribute(model, "logLevel", 1)
+  model = Model(CPLEX.Optimizer)
+  set_optimizer_attribute(model, "CPX_PARAM_EPINT", 1e-8)
 
   # Variables
   @variable(model, fx[A, Vminus1] ≥ 0)
