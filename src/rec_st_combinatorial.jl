@@ -312,7 +312,7 @@ function get_objective_value(edge_indices::Dict{Edge{Int64}, Int64},
                             t_x::Array{Edge{Int64}},
                             w_1::Array{Float64},
                             t_y::Array{Edge{Int64}},
-                            w_2::Array{Float64},)
+                            w_2::Array{Float64})
   sum = 0;
   for (e, i) in edge_indices
     if e ∈ t_x

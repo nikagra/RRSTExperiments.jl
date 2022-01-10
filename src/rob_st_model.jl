@@ -8,7 +8,7 @@ function get_objective_value(w::Dict{Tuple{Int64, Int64}, Float64}, t_x::Vector{
     return map(e -> (e.src, e.dst), t_x)
   end
 
-function solve_rob_st_model(n::Int64, A::Vector{InputEdge})
+function solve_minmax_st(n::Int64, A::Vector{InputEdge})
     weight_map::Dict{Tuple{Int64, Int64}, Float64} = Dict()
     g = SimpleGraph(n)
     for e in A

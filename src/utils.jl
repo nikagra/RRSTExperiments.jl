@@ -37,7 +37,12 @@ function generate_scenario(dist::Distribution, A::Vector{InputEdge})
     return [e.c + rand(dist) * e.d for e ∈ A]
 end
 
+function calculate_cost(A::Vector{InputEdge}, x::Vector{Tuple{Int64, Int64}}, S::Vector{Float64})
+    @assert length(A) == length(S)
+    return sum([e.C + S[i] for (i, e) ∈ enumerate(A) if (e.i, e.j) in x || (e.j, e.i) in x])
+end
+
 function calculate_cost(A::Vector{InputEdge}, x::Vector{Tuple{Int64, Int64}}, c::Float64)
-    C = sum([e.C for e ∈ A if (e.i, e.j) in x || (e.j, e.i) in x])
-    return C + c
+    C = sum([e.C for e ∈ A if (e.i, e.j) in x || (e.j, e.i) in x]) # first stage costs
+    return C + c # complete cost
 end

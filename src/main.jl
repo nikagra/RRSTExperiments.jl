@@ -7,7 +7,7 @@ using CSV, DataFrames
 Pkg.activate(".")
 using RRSTExperiments
   
-function prepare_graph(filename::String, α::Float64 = 1.0, β::Float64 = 4.0)
+function prepare_graph(filename::String, α::Float64 = 1.0, β::Float64 = 3.0)
   # Read vertices, edges and first stage costs
   n, E, C = parse_graph_data(filename)
 
@@ -30,18 +30,17 @@ function experiment(seed::UInt32)
 
   A = [InputEdge(a, b, C[i], c[i], d[i]) for (i, (a,b)) in enumerate(E)]
   ns = []; ks = []; cs = []; ms = []; nums = []; c1s = []; c2s = []
-  for k in [0, floor(Int64, 0.05 * m), floor(Int64, 0.1 * m), floor(Int64, 0.25 * m)]
+  for k in [0, floor(Int64, 0.05 * m), floor(Int64, 0.1 * m), floor(Int64, 0.25 * m), floor(Int64, 0.5 * m)]
     print("n=$n, k=$k: ")
       result1, x₁ = RRSTExperiments.solve_rec_st_with_algorithm(n, A, k)
       print("RRST = $result1, ")
 
-      result2, x₂ = RRSTExperiments.solve_rob_st_model(n, A)
+      result2, x₂ = RRSTExperiments.solve_minmax_st(n, A)
       println("MM = $result2.")
 
       for i in 1:10
-        S = generate_scenario(Uniform(), A)
-        _, c₁, _ = RRSTExperiments.solve_inc_st(n, S, A, x₁, k)
-        _, c₂, _ = RRSTExperiments.solve_inc_st(n, S, A, x₂, k)
+        S = generate_scenario(Uniform(), A) # Generating actual scenario
+        _, c₁, y₁ = RRSTExperiments.solve_inc_st(n, S, A, x₁, k) # Recovery action for RRST
 
         push!(ns, n)
         push!(ks, k)
@@ -49,7 +48,7 @@ function experiment(seed::UInt32)
         push!(ms, result2)
         push!(nums, i)
         push!(c1s, calculate_cost(A, x₁, c₁))
-        push!(c2s, calculate_cost(A, x₂, c₂))
+        push!(c2s, calculate_cost(A, x₂, S))
       end
   end
 

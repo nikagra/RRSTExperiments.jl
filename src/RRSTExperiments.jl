@@ -6,7 +6,7 @@ using Graphs
 using SparseArrays
 
 export InputEdge,
-    solve_rec_st_with_algorithm, solve_rec_st_model, solve_rob_st_model, solve_rec_st_hurwicz, solve_inc_st,
+    solve_rec_st_with_algorithm, solve_rec_st_model, solve_minmax_st, solve_rec_st_hurwicz, solve_inc_st,
 
     parse_graph_data, generate_uncertain_costs, generate_scenario,
 
