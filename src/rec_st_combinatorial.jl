@@ -305,7 +305,7 @@ function update_trees(edge_indices::Dict{Edge{Int64}, Int64},
     t_y = t_y ∪ g_y
   end
 
-  return t_x,t_y
+  return t_x, t_y
 end
 
 function get_objective_value(edge_indices::Dict{Edge{Int64}, Int64},
@@ -366,6 +366,7 @@ function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
   w1_star, w2_star = copy(w1), copy(w2)
 
   while length(t_x ∩ t_y) < L
+    println("length(t_x ∩ t_y) = ", length(t_x ∩ t_y))
     y = map(e -> edge_indices[e], setdiff(t_y, t_x))
     x = map(e -> edge_indices[e], setdiff(t_x, t_y))
     z = map(e -> edge_indices[e], t_x ∩ t_y)

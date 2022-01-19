@@ -25,7 +25,7 @@ function experiment(seed::UInt32)
   Random.seed!(seed)
 
   # Prepare graph
-  n, E, C, c, d = prepare_graph("res/sample.gr")
+  n, E, C, c, d = prepare_graph("data/ryanair/ryanair.gr")
   m = length(E)
 
   A = [InputEdge(a, b, C[i], c[i], d[i]) for (i, (a,b)) in enumerate(E)]
@@ -40,7 +40,8 @@ function experiment(seed::UInt32)
 
       for i in 1:10
         S = generate_scenario(Uniform(), A) # Generating actual scenario
-        _, c₁, y₁ = RRSTExperiments.solve_inc_st(n, S, A, x₁, k) # Recovery action for RRST
+        println("i=", i)
+        _, c₁, _ = RRSTExperiments.solve_inc_st_with_model(n, S, A, x₁, k) # Recovery action for RRST
 
         push!(ns, n)
         push!(ks, k)
@@ -53,13 +54,12 @@ function experiment(seed::UInt32)
   end
 
   # Write results
-  touch("sample.csv")
-  f = open("sample.csv", "w")
+ open("data/ryanair/ryanair_output.csv", "w")
  
-  df = DataFrame(num_vertices=ns, rec_param=ks, alg_sol_cost=cs, minmax_sol_cost=ms, experiment_num=nums, alg_eval_cost=c1s, minmax_eval_cost=c2s)
+  df = DataFrame("num_vertices"=>ns, "rec_param"=>ks, "alg_sol_cost"=>cs, "minmax_sol_cost"=>ms, "experiment_num"=>nums, "alg_eval_cost"=>c1s, "minmax_eval_cost"=>c2s)
   println(df)
                 
-  CSV.write("sample.csv", df)
+  CSV.write("data/ryanair/ryanair_output.csv", df)
 end
 
 for seed in 0x00000001:0x00000001

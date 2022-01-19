@@ -1,11 +1,11 @@
 import RRSTExperiments: InputEdge
 
 """
-    solve_inc_st(n::Int, E::Vector{InputEdge}, x::Vector{Tuple{Int, Int}}, k::Int)
+    solve_inc_st_with_model(n::Int, E::Vector{InputEdge}, x::Vector{Tuple{Int, Int}}, k::Int)
 
 The incremental minimum spanning tree problem
 """
-function solve_inc_st(n::Int, S::Vector{Float64}, E::Vector{InputEdge}, x::Vector{Tuple{Int, Int}}, k::Int)
+function solve_inc_st_with_model(n::Int, S::Vector{Float64}, E::Vector{InputEdge}, x::Vector{Tuple{Int, Int}}, k::Int)
     @assert length(S) == length(E)
     V = collect(1:n) # set of nodes
     Vminus1 = setdiff(V, [1]) # commodity nodes
@@ -15,6 +15,7 @@ function solve_inc_st(n::Int, S::Vector{Float64}, E::Vector{InputEdge}, x::Vecto
 
     # Model
     model = Model(CPLEX.Optimizer)
+    set_silent(model)
     set_optimizer_attribute(model, "CPX_PARAM_EPINT", 1e-8)
 
     # Variables
@@ -66,4 +67,11 @@ function solve_inc_st(n::Int, S::Vector{Float64}, E::Vector{InputEdge}, x::Vecto
     else
         return status, missing, missing
     end
+end
+
+function solve_inc_st_with_algorithm(n::Int, S::Vector{Float64}, E::Vector{InputEdge}, x::Vector{Tuple{Int, Int}}, k::Int)
+    Cₘ = maximum(map(e -> e.C, E))
+    A = [InputEdge(e.i, e.j, (e.i, e.j) in x || (e.j, e.i) in x ? 0.0 : 10 * Cₘ, S[i]) for (i, e) in enumerate(E)]
+
+    return RRSTExperiments.solve_rec_st_with_algorithm(n, A, k)
 end
