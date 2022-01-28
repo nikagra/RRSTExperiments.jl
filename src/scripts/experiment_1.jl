@@ -25,41 +25,43 @@ function experiment(seed::UInt32)
   Random.seed!(seed)
 
   # Prepare graph
-  n, E, C, c, d = prepare_graph("data/ryanair/ryanair.gr")
+  n, E, C, c, d = prepare_graph("../data/london/london.gr")
   m = length(E)
 
   A = [InputEdge(a, b, C[i], c[i], d[i]) for (i, (a,b)) in enumerate(E)]
   ns = []; ks = []; cs = []; ms = []; nums = []; c1s = []; c2s = []
   for k in [0, floor(Int64, 0.05 * m), floor(Int64, 0.1 * m), floor(Int64, 0.25 * m), floor(Int64, 0.5 * m)]
     print("n=$n, k=$k: ")
-      result1, x₁ = RRSTExperiments.solve_rec_st_with_algorithm(n, A, k)
-      print("RRST = $result1, ")
+    result1, x₁ = RRSTExperiments.solve_rec_st_with_algorithm(n, copy(A), k)
+    print("RRST = $result1, ")
 
-      result2, x₂ = RRSTExperiments.solve_minmax_st(n, A)
-      println("MM = $result2.")
+    result2, x₂ = RRSTExperiments.solve_minmax_st(n, A)
+    println("MM = $result2.")
 
-      for i in 1:10
-        S = generate_scenario(Uniform(), A) # Generating actual scenario
-        println("i=", i)
-        _, c₁, _ = RRSTExperiments.solve_inc_st_with_model(n, S, A, x₁, k) # Recovery action for RRST
+    for i in 1:25
+      S = generate_scenario(Uniform(), A) # Generating actual scenario
+      println("i=", i)
+      # _, c₁, _ = RRSTExperiments.solve_inc_st_with_model(n, S, A, x₁, k) # Recovery action for RRST
+      c₁, _ = RRSTExperiments.solve_inc_st_with_algorithm(n, S, copy(A), x₁, k) # Recovery action for RRST
+      println(c₁)
 
-        push!(ns, n)
-        push!(ks, k)
-        push!(cs, result1)
-        push!(ms, result2)
-        push!(nums, i)
-        push!(c1s, calculate_cost(A, x₁, c₁))
-        push!(c2s, calculate_cost(A, x₂, S))
-      end
+      push!(ns, n)
+      push!(ks, k)
+      push!(cs, result1)
+      push!(ms, result2)
+      push!(nums, i)
+      push!(c1s, calculate_cost(A, x₁, c₁))
+      push!(c2s, calculate_cost(A, x₂, S))
+    end
   end
 
   # Write results
- open("data/ryanair/ryanair_output.csv", "w")
+ open("../data/london/london_output.csv", "w")
  
   df = DataFrame("num_vertices"=>ns, "rec_param"=>ks, "alg_sol_cost"=>cs, "minmax_sol_cost"=>ms, "experiment_num"=>nums, "alg_eval_cost"=>c1s, "minmax_eval_cost"=>c2s)
   println(df)
                 
-  CSV.write("data/ryanair/ryanair_output.csv", df)
+  CSV.write("../data/london/london_output.csv", df)
 end
 
 for seed in 0x00000001:0x00000001

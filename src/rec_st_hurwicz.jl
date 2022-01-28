@@ -1,5 +1,9 @@
 import RRSTExperiments: InputEdge
 
+function get_first_stage_solution(x::Array{Float64}, E::Vector{InputEdge})::Vector{Tuple{Int, Int}}
+    return [(e.i, e.j) for (i, e) ∈ enumerate(E) if x[i] > 0]
+end
+
 function solve_rec_st_hurwicz(n::Int,
     E::Vector{InputEdge},
     k::Int,
@@ -12,21 +16,22 @@ function solve_rec_st_hurwicz(n::Int,
 
     # Model
     model = Model(CPLEX.Optimizer)
+    set_silent(model)
     set_optimizer_attribute(model, "CPX_PARAM_EPINT", 1e-8)
 
     # Variables
     @variable(model, fx[A, Vminus1] ≥ 0)
     @variable(model, wx[A] ≥ 0)
-    @variable(model, x[E] ≥ 0)
+    @variable(model, x[E] ≥ 0, Bin)
 
     @variable(model, fy¹[A, Vminus1] ≥ 0)
     @variable(model, wy¹[A] ≥ 0)
-    @variable(model, y¹[E] ≥ 0)
+    @variable(model, y¹[E] ≥ 0, Bin)
     @variable(model, z¹[E] ≥ 0)
 
     @variable(model, fy²[A, Vminus1] ≥ 0)
     @variable(model, wy²[A] ≥ 0)
-    @variable(model, y²[E] ≥ 0)
+    @variable(model, y²[E] ≥ 0, Bin)
     @variable(model, z²[E] ≥ 0)
 
     # Objective
@@ -96,7 +101,7 @@ function solve_rec_st_hurwicz(n::Int,
     status=termination_status(model)
     obj_value = objective_value(model)
     if status == MOI.OPTIMAL
-        return status, obj_value, Array(value.(x)), Array(value.(y¹)), Array(value.(y²))
+        return status, obj_value, get_first_stage_solution(Array(value.(x)), E)
     else
         return status, missing, missing
     end

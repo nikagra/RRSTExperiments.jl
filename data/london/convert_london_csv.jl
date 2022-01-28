@@ -1,7 +1,7 @@
 # Data source for london tube https://www.whatdotheyknow.com/request/distance_between_adjacent_underg
 using CSV, DataFrames
 
-df = CSV.read("data/london/london.csv", DataFrame)
+df = CSV.read("../data/london/london.csv", DataFrame)
 
 id = 1
 stations = Dict()
@@ -27,7 +27,7 @@ end
 
 n, E, C = id - 1, collect(keys(edges)), collect(values(edges))
 
-output = open("data/london/london.gr", "w")
+output = open("../data/london/london.gr", "w")
 write(output, "c London Tube Stations Graph with distances\n")
 write(output, "c Source: https://www.whatdotheyknow.com/request/distance_between_adjacent_underg\n")
 write(output, "c\n")

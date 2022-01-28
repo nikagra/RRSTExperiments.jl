@@ -43,7 +43,7 @@ Returns a list of addmissible nodes, which are:
 * each `v ∈ nodes` reachible from any node in `y` by a directed path formed
 of edges `e ∈ edges` is admissible
 """
-function get_admissible_nodes(y::Array{Int64}, nodes::Array{Int64}, edges::Array{Edge{Int64}})
+function get_admissible_nodes(m::Int64, y::Array{Int64}, nodes::Array{Int64}, edges::Array{Edge{Int64}})
   queue = copy(y) # every e ∈ y is admissible
 
   visited = falses(length(nodes))
@@ -98,7 +98,7 @@ function build_admissible_graph(edge_indices::Dict{Edge{Int64}, Int64}, t_x::Arr
 
   # Second step
   y = [edge_indices[e] for e in setdiff(t_y, t_x)]
-  admissible_nodes = get_admissible_nodes(y, v_0, e_0)
+  admissible_nodes = get_admissible_nodes(length(edge_indices), y, v_0, e_0)
   v_0 = filter(v -> v ∈ admissible_nodes, v_0)
   e_0 = filter(e -> Graphs.src(e) ∈ admissible_nodes && Graphs.dst(e) ∈ admissible_nodes, e_0)
 
@@ -366,7 +366,7 @@ function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
   w1_star, w2_star = copy(w1), copy(w2)
 
   while length(t_x ∩ t_y) < L
-    println("length(t_x ∩ t_y) = ", length(t_x ∩ t_y))
+    println("length(t_x ∩ t_y) = $(length(t_x ∩ t_y))")
     y = map(e -> edge_indices[e], setdiff(t_y, t_x))
     x = map(e -> edge_indices[e], setdiff(t_x, t_y))
     z = map(e -> edge_indices[e], t_x ∩ t_y)
