@@ -46,3 +46,7 @@ function calculate_cost(A::Vector{InputEdge}, x::Vector{Tuple{Int64, Int64}}, c:
     C = sum([e.C for e ∈ A if (e.i, e.j) in x || (e.j, e.i) in x]) # first stage costs
     return C + c # complete cost
 end
+
+function get_first_stage_solution(x::Array{Float64}, E::Vector{InputEdge})::Vector{Tuple{Int, Int}}
+    return [(e.i, e.j) for (i, e) ∈ enumerate(E) if x[i] > 0]
+end

@@ -1,9 +1,5 @@
 import RRSTExperiments: InputEdge
 
-function get_first_stage_solution(x::Array{Float64}, E::Vector{InputEdge})::Vector{Tuple{Int, Int}}
-    return [(e.i, e.j) for (i, e) ∈ enumerate(E) if x[i] > 0]
-end
-
 function solve_rec_st_hurwicz(n::Int,
     E::Vector{InputEdge},
     k::Int,

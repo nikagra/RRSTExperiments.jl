@@ -30,15 +30,15 @@ function experiment(seed::UInt32)
 
   A = [InputEdge(a, b, C[i], c[i], d[i]) for (i, (a,b)) in enumerate(E)]
   ns = []; ks = []; cs = []; ms = []; nums = []; c1s = []; c2s = []
+
+  result_mm, x₂ = RRSTExperiments.solve_minmax_st(n, A)
+
   for k in [0, floor(Int64, 0.05 * m), floor(Int64, 0.1 * m), floor(Int64, 0.25 * m), floor(Int64, 0.5 * m)]
     print("n=$n, k=$k: ")
-    result1, x₁ = RRSTExperiments.solve_rec_st_with_algorithm(n, copy(A), k)
-    print("RRST = $result1, ")
+    result_rr, x₁ = RRSTExperiments.solve_rec_st_with_algorithm(n, copy(A), k)
+    println("RRST = $result_rr, MM = $result_mm.")
 
-    result2, x₂ = RRSTExperiments.solve_minmax_st(n, A)
-    println("MM = $result2.")
-
-    for i in 1:3
+    for i in 1:5
       S = generate_scenario(Uniform(), A) # Generating actual scenario
       println("i=", i)
       _, c₁, _ = RRSTExperiments.solve_inc_st_with_model(n, S, A, x₁, k) # Recovery action for RRST
@@ -47,12 +47,12 @@ function experiment(seed::UInt32)
       c2 = calculate_cost(A, x₂, S)
       push!(ns, n)
       push!(ks, k)
-      push!(cs, result1)
-      push!(ms, result2)
+      push!(cs, result_rr)
+      push!(ms, result_mm)
       push!(nums, i)
       push!(c1s, c1)
       push!(c2s, c2)
-      println("$n,$k,$result1,$result2,$i,$c1,$c2")
+      println("$n,$k,$result_rr,$result_mm,$i,$c1,$c2")
     end
   end
 

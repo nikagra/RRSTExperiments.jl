@@ -18,8 +18,8 @@ end
 
 function generate_plot(london::DataFrame)
     xs = Int[]
-    min_val = floor(min(minimum(london[!, :alg_eval_cost]), minimum(london[!, :minmax_eval_cost])); sigdigits = 2)
-    max_val = ceil(max(maximum(london[!, :alg_eval_cost]), maximum(london[!, :minmax_eval_cost])); sigdigits = 2)
+    min_val = floor(min(minimum(london[!, :alg_eval_cost]), minimum(london[!, :minmax_eval_cost])); sigdigits = 3)
+    max_val = ceil(max(maximum(london[!, :alg_eval_cost]), maximum(london[!, :minmax_eval_cost])); sigdigits = 3)
     ys = Float64[]
     grp = Int[]
     xticks = String[]
@@ -39,7 +39,7 @@ function generate_plot(london::DataFrame)
     )
     ylims!(min_val, max_val)
     # Legend
-    labels = ["MinMax ST", "RR ST"]
+    labels = ["MinMax ST(S)", "RR ST(S)"]
     elements = [PolyElement(polycolor = colors[i]) for i in 1:length(labels)]
     title = "Legenda"
 
@@ -48,8 +48,8 @@ function generate_plot(london::DataFrame)
     save("output-$(randstring(4)).pdf", f)
 end
 
-london = get_aggregated_data("data/london/london_output_1.csv")
-# generate_plot(london)
+london = get_aggregated_data("data/london/london_output_exp1.csv")
+generate_plot(london)
 
-ryanair = get_aggregated_data("data/ryanair/ryanair_output_1.csv")
-generate_plot(ryanair)
+# ryanair = get_aggregated_data("data/ryanair/ryanair_output_exp1.csv")
+# generate_plot(ryanair)

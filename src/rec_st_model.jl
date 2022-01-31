@@ -9,6 +9,7 @@ function solve_rec_st_model(n::Int, E::Vector{InputEdge}, k::Int)::Float64
 
   # Model
   model = Model(CPLEX.Optimizer)
+  set_silent(model)
   set_optimizer_attribute(model, "CPX_PARAM_EPINT", 1e-8)
 
   # Variables
