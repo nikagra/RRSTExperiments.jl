@@ -25,7 +25,7 @@ function experiment(seed::UInt32)
   Random.seed!(seed)
 
   # Prepare graph
-  n, E, C, c, d = prepare_graph("../data/london/london.gr")
+  n, E, C, c, d = prepare_graph("data/london/london.gr")
   m = length(E)
 
   A = [InputEdge(a, b, C[i], c[i], d[i]) for (i, (a,b)) in enumerate(E)]
@@ -42,12 +42,11 @@ function experiment(seed::UInt32)
       S = generate_scenario(Uniform(), A) # Generating actual scenario
       println("i=", i)
       _, c₁, _ = @time RRSTExperiments.solve_inc_st_with_model(n, S, A, x₁, k) # Recovery action for RRST
-      
       _, c₂ , _ = @time RRSTExperiments.solve_inc_st_with_model(n, S, A, x₂, k) # Recovery action for Hurwicz
 
       c1 = calculate_cost(A, x₁, c₁)
       c2 = calculate_cost(A, x₂, c₂)
-      println("$n,$k,$λ,$result1,$result2,$i,$c1,$c2")
+      
       push!(ns, n)
       push!(ks, k)
       push!(cs, result1)
@@ -56,18 +55,18 @@ function experiment(seed::UInt32)
       push!(nums, i)
       push!(c1s, c1)
       push!(c2s, c2)
+      println("$n,$k,$λ,$result1,$result2,$i,$c1,$c2")
     end
   end
 
   # Write results
- open("../data/london/london_output.csv", "w")
+  filename = "data/london/london_output_$(randstring(4))_hur.csv"
+  open(filename, "w")
  
   df = DataFrame("num_vertices"=>ns, "rec_param"=>ks, "λ"=>λs, "alg_sol_cost"=>cs, "hurwicz_sol_cost"=>ms, "experiment_num"=>nums, "alg_eval_cost"=>c1s, "hurwicz_eval_cost"=>c2s)
   println(df)
                 
-  CSV.write("../data/london/london_output.csv", df)
+  CSV.write(filename, df)
 end
 
-for seed in 0x00000001:0x00000001
-  experiment(seed)
-end
+experiment(0x00000001)

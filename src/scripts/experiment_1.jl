@@ -25,7 +25,7 @@ function experiment(seed::UInt32)
   Random.seed!(seed)
 
   # Prepare graph
-  n, E, C, c, d = prepare_graph("../data/london/london.gr")
+  n, E, C, c, d = prepare_graph("data/ryanair/ryanair.gr")
   m = length(E)
 
   A = [InputEdge(a, b, C[i], c[i], d[i]) for (i, (a,b)) in enumerate(E)]
@@ -38,32 +38,32 @@ function experiment(seed::UInt32)
     result2, x₂ = RRSTExperiments.solve_minmax_st(n, A)
     println("MM = $result2.")
 
-    for i in 1:25
+    for i in 1:3
       S = generate_scenario(Uniform(), A) # Generating actual scenario
       println("i=", i)
-      # _, c₁, _ = RRSTExperiments.solve_inc_st_with_model(n, S, A, x₁, k) # Recovery action for RRST
-      c₁, _ = RRSTExperiments.solve_inc_st_with_algorithm(n, S, copy(A), x₁, k) # Recovery action for RRST
-      println(c₁)
+      _, c₁, _ = RRSTExperiments.solve_inc_st_with_model(n, S, A, x₁, k) # Recovery action for RRST
 
+      c1 = calculate_cost(A, x₁, c₁)
+      c2 = calculate_cost(A, x₂, S)
       push!(ns, n)
       push!(ks, k)
       push!(cs, result1)
       push!(ms, result2)
       push!(nums, i)
-      push!(c1s, calculate_cost(A, x₁, c₁))
-      push!(c2s, calculate_cost(A, x₂, S))
+      push!(c1s, c1)
+      push!(c2s, c2)
+      println("$n,$k,$result1,$result2,$i,$c1,$c2")
     end
   end
 
   # Write results
- open("../data/london/london_output.csv", "w")
+  filename = "data/ryanair/ryanair_output_$(randstring(4)).csv"
+  open(filename, "w")
  
   df = DataFrame("num_vertices"=>ns, "rec_param"=>ks, "alg_sol_cost"=>cs, "minmax_sol_cost"=>ms, "experiment_num"=>nums, "alg_eval_cost"=>c1s, "minmax_eval_cost"=>c2s)
   println(df)
                 
-  CSV.write("../data/london/london_output.csv", df)
+  CSV.write(filename, df)
 end
 
-for seed in 0x00000001:0x00000001
-  experiment(seed)
-end
+experiment(0x00000001)

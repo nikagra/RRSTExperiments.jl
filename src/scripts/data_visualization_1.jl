@@ -48,8 +48,8 @@ function generate_plot(london::DataFrame)
     save("output-$(randstring(4)).pdf", f)
 end
 
-london = get_aggregated_data("../data/london/london_output_1.csv")
+london = get_aggregated_data("data/london/london_output_1.csv")
 # generate_plot(london)
 
-ryanair = get_aggregated_data("../data/ryanair/ryanair_output_1.csv")
+ryanair = get_aggregated_data("data/ryanair/ryanair_output_1.csv")
 generate_plot(ryanair)

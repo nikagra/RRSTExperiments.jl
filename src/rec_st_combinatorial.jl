@@ -337,8 +337,8 @@ function get_initial_trees(n::Int, A::Array{InputEdge})
     w1_mat[e.i, e.j] = e.C
     w1_mat[e.j, e.i] = e.C
 
-    w2_mat[e.i, e.j] = e.c
-    w2_mat[e.j, e.i] = e.c
+    w2_mat[e.i, e.j] = e.c + e.d
+    w2_mat[e.j, e.i] = e.c + e.d
   end
 
   t_x = kruskal_mst(g, w1_mat)
@@ -366,7 +366,6 @@ function solve_rec_st_with_algorithm(n::Int, A::Array{InputEdge}, k::Int)
   w1_star, w2_star = copy(w1), copy(w2)
 
   while length(t_x ∩ t_y) < L
-    println("length(t_x ∩ t_y) = $(length(t_x ∩ t_y))")
     y = map(e -> edge_indices[e], setdiff(t_y, t_x))
     x = map(e -> edge_indices[e], setdiff(t_x, t_y))
     z = map(e -> edge_indices[e], t_x ∩ t_y)
