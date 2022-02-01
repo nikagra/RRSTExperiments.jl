@@ -46,7 +46,7 @@ of edges `e ∈ edges` is admissible
 function get_admissible_nodes(m::Int64, y::Array{Int64}, nodes::Array{Int64}, edges::Array{Edge{Int64}})
   queue = copy(y) # every e ∈ y is admissible
 
-  visited = falses(length(nodes))
+  visited = falses(m)
   for i in y
     visited[i] = true
   end

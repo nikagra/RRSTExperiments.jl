@@ -24,7 +24,7 @@ function solve_rec_st_model(n::Int, E::Vector{InputEdge}, k::Int)::Float64
 
 
   # Objective
-  @objective(model, Min, sum(e.C * x[e] for e ∈ E) + sum(e.c * y[e] for e ∈ E))
+  @objective(model, Min, sum(e.C * x[e] for e ∈ E) + sum((e.c + e.d) * y[e] for e ∈ E))
 
   #Constraints
   #Constraints

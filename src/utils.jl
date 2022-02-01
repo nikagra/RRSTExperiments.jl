@@ -19,7 +19,7 @@ function parse_graph_data(name::String)
 
                 v₁ = parse(Int64, elems[2])
                 v₂ = parse(Int64, elems[3])
-                push!(E, (v₁, v₂))
+                push!(E, minmax(v₁, v₂))
 
                 Cᵢ = parse(Int64, elems[4])
                 push!(C, Cᵢ)

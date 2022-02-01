@@ -1,7 +1,7 @@
 import RRSTExperiments: InputEdge
 
 function get_objective_value(w::Dict{Tuple{Int64, Int64}, Float64}, t_x::Vector{Edge{Int}})
-    return sum(map(e -> haskey(w, (e.src, e.dst)) ? w[(e.src, e.dst)] : w[(e.dst, e.src)], t_x))
+    return sum(map(e -> haskey(w, (e.src, e.dst)) ? w[(e.src, e.dst)] : 0, t_x))
   end
 
   function get_solution(t_x::Vector{Edge{Int}})
@@ -13,7 +13,7 @@ function solve_minmax_st(n::Int64, A::Vector{InputEdge})
     g = SimpleGraph(n)
     for e in A
       add_edge!(g, e.i, e.j)
-      push!(weight_map, (e.i, e.j) => (e.C + e.c + e.d))
+      push!(weight_map, minmax(e.i, e.j) => (e.C + e.c + e.d))
     end
   
     w_mat = spzeros(Float64, n, n)
