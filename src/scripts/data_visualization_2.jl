@@ -40,17 +40,17 @@ function generate_plot(london::DataFrame, k::Int64)
     )
     ylims!(min_val, max_val)
     # Legend
-    labels = ["Hurwicz ST", "RR ST"]
+    labels = ["Hurwicz ST(S)", "RR ST(S)"]
     elements = [PolyElement(polycolor = colors[i]) for i in 1:length(labels)]
     title = "Legenda"
 
     Legend(f[1,2], elements, labels, title)
 
-    save("data/london/london_output_2-$(randstring(4))-$k.pdf", f)
+    save("data/london/london_output_exp2-$k-$(randstring(4)).pdf", f)
 end
 
-for k in [0, 16, 32, 82, 164]
-    london = get_aggregated_data("data/london/london_output_2.csv", k)
-    println(london)
-    generate_plot(london, k)
+for k in [0, 16, 32]
+    data = get_aggregated_data("data/london/london_output_exp2.csv", k)
+    println(data)
+    generate_plot(data, k)
 end

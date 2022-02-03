@@ -16,15 +16,15 @@ function get_aggregated_data(filename::String)
     end
 end
 
-function generate_plot(london::DataFrame)
+function generate_plot(df::DataFrame)
     xs = Int[]
-    min_val = floor(min(minimum(london[!, :alg_eval_cost]), minimum(london[!, :minmax_eval_cost])); sigdigits = 3)
-    max_val = ceil(max(maximum(london[!, :alg_eval_cost]), maximum(london[!, :minmax_eval_cost])); sigdigits = 3)
+    min_val = floor(min(minimum(df[!, :alg_eval_cost]), minimum(df[!, :minmax_eval_cost])); sigdigits = 3)
+    max_val = ceil(max(maximum(df[!, :alg_eval_cost]), maximum(df[!, :minmax_eval_cost])); sigdigits = 3)
     ys = Float64[]
     grp = Int[]
     xticks = String[]
     colors = cgrad(:Greys_3)
-    for (i, r) in enumerate(eachrow(london))
+    for (i, r) in enumerate(eachrow(df))
         row = NamedTuple(r)
         push!(xs, i); push!(xs, i)
         push!(ys, row[:minmax_eval_cost]); push!(ys, row[:alg_eval_cost])
@@ -32,7 +32,7 @@ function generate_plot(london::DataFrame)
         push!(xticks, string(row[:rec_param]))
     end
     f = Figure()
-    Axis(f[1, 1], xticks = (1:5, xticks), xlabel = "Wartość parametru naprawy", ylabel = "Wartość funkcji celu")
+    Axis(f[1, 1], xticks = (1:3, xticks), xlabel = "Wartość parametru naprawy", ylabel = "Wartość funkcji celu")
     barplot!(xs, ys,
             dodge = grp,
             color = colors[grp]
@@ -45,7 +45,7 @@ function generate_plot(london::DataFrame)
 
     Legend(f[1,2], elements, labels, title)
 
-    save("output-$(randstring(4)).pdf", f)
+    save("data/london/london_output_exp1-$(randstring(4)).pdf", f)
 end
 
 london = get_aggregated_data("data/london/london_output_exp1.csv")

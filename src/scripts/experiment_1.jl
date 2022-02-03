@@ -25,7 +25,7 @@ function experiment(seed::UInt32)
   Random.seed!(seed)
 
   # Prepare graph
-  n, E, C, c, d = prepare_graph("data/ryanair/ryanair.gr")
+  n, E, C, c, d = prepare_graph("data/london/london.gr")
   m = length(E)
 
   A = [InputEdge(a, b, C[i], c[i], d[i]) for (i, (a,b)) in enumerate(E)]
@@ -33,7 +33,7 @@ function experiment(seed::UInt32)
 
   result_mm, x₂ = RRSTExperiments.solve_minmax_st(n, A)
 
-  for k in [0, floor(Int64, 0.05 * m), floor(Int64, 0.1 * m), floor(Int64, 0.25 * m), floor(Int64, 0.5 * m)]
+  for k in [floor(Int64, 0.05 * m), floor(Int64, 0.1 * m), floor(Int64, 0.25 * m)]
     print("n=$n, k=$k: ")
     result_rr, x₁ = RRSTExperiments.solve_rec_st_with_algorithm(n, copy(A), k)
     println("RRST = $result_rr, MM = $result_mm.")
@@ -57,7 +57,7 @@ function experiment(seed::UInt32)
   end
 
   # Write results
-  filename = "data/ryanair/ryanair_output_$(randstring(4)).csv"
+  filename = "data/london/london_output_exp1-$(randstring(4)).csv"
   open(filename, "w")
  
   df = DataFrame("num_vertices"=>ns, "rec_param"=>ks, "alg_sol_cost"=>cs, "minmax_sol_cost"=>ms, "experiment_num"=>nums, "alg_eval_cost"=>c1s, "minmax_eval_cost"=>c2s)
