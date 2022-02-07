@@ -32,7 +32,7 @@ function generate_plot(df::DataFrame)
         push!(xticks, string(row[:rec_param]))
     end
     f = Figure()
-    Axis(f[1, 1], xticks = (1:3, xticks), xlabel = "Wartość parametru naprawy", ylabel = "Wartość funkcji celu")
+    Axis(f[1, 1], xticks = (1:5, xticks), xlabel = "Wartość parametru naprawy", ylabel = "Wartość funkcji celu")
     barplot!(xs, ys,
             dodge = grp,
             color = colors[grp]

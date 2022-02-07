@@ -30,32 +30,39 @@ function experiment(seed::UInt32)
 
   A = [InputEdge(a, b, C[i], c[i], d[i]) for (i, (a,b)) in enumerate(E)]
   ns = []; ks = []; cs = []; ms = []; nums = []; c1s = []; c2s = []; λs = []
-  for k in [0, floor(Int64, 0.05 * m), floor(Int64, 0.1 * m), floor(Int64, 0.25 * m), floor(Int64, 0.5 * m)], λ in [0.1, 0.2, 0.3, 0.4, 0.5]
-    print("n=$n, k=$k: ")
+  for k in [0, floor(Int64, 0.05 * m)]
+    println("n=$n, k=$k: ")
     result1, x₁ = RRSTExperiments.solve_rec_st_with_algorithm(n, copy(A), k)
-    print("RRST = $result1, ")
 
-    _, result2, x₂ = RRSTExperiments.solve_rec_st_hurwicz(n, copy(A), k, λ)
-    println("Hurwicz = $result2.")
+    for λ in [0.25, 0.75]
+      print("    RRST = $result1, ")
+      _, result2, x₂ = RRSTExperiments.solve_rec_st_hurwicz(n, copy(A), k, λ)
+      println("Hurwicz = $result2.")
 
-    for i in 1:5
-      S = generate_scenario(Uniform(), A) # Generating actual scenario
-      println("i=", i)
-      _, c₁, _ = @time RRSTExperiments.solve_inc_st_with_model(n, S, A, x₁, k) # Recovery action for RRST
-      _, c₂ , _ = @time RRSTExperiments.solve_inc_st_with_model(n, S, A, x₂, k) # Recovery action for Hurwicz
+      println("    |symdiff(x₁, x₂)| = $(length(symdiff(x₁, x₂)))")
+      println("    ∑Cx₁ = $(sum([e.C for e ∈ A if (e.i, e.j) in x₁ || (e.j, e.i) in x₁]))")
+      println("    ∑Cx₂ = $(sum([e.C for e ∈ A if (e.i, e.j) in x₂ || (e.j, e.i) in x₂]))")
 
-      c1 = calculate_cost(A, x₁, c₁)
-      c2 = calculate_cost(A, x₂, c₂)
-      
-      push!(ns, n)
-      push!(ks, k)
-      push!(cs, result1)
-      push!(ms, result2)
-      push!(λs, λ)
-      push!(nums, i)
-      push!(c1s, c1)
-      push!(c2s, c2)
-      println("$n,$k,$λ,$result1,$result2,$i,$c1,$c2")
+      for i in 1:5
+        S = generate_scenario(Uniform(), A) # Generating actual scenario
+        println("i=", i)
+        _, c₁, _ = RRSTExperiments.solve_inc_st_with_model(n, S, A, x₁, k) # Recovery action for RRST
+        _, c₂ , _ = RRSTExperiments.solve_inc_st_with_model(n, S, A, x₂, k) # Recovery action for Hurwicz
+
+        println("    c₁=$c₁, c₂=$c₂")
+        c1 = calculate_cost(A, x₁, c₁)
+        c2 = calculate_cost(A, x₂, c₂)
+        
+        push!(ns, n)
+        push!(ks, k)
+        push!(cs, result1)
+        push!(ms, result2)
+        push!(λs, λ)
+        push!(nums, i)
+        push!(c1s, c1)
+        push!(c2s, c2)
+        println("$n,$k,$λ,$result1,$result2,$i,$c1,$c2")
+      end
     end
   end
 
